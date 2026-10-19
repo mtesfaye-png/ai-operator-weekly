@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Usage:
 //   node src/cli.js daily                     # scout today's stories
-//   node src/cli.js weekly [--date 2026-10-18] [--force]
+//   node src/cli.js weekly [--date 2026-10-18] [--force] [--new-beehiiv-draft]
 //   node src/cli.js analytics                 # pull stats for sent issues
 //   node src/cli.js doctor                    # check configuration (no paid calls)
 //   add --mock to any workflow to run against simulated APIs (no keys, no cost)
@@ -24,7 +24,7 @@ async function main() {
   }
   if (cmd === 'doctor') return doctor();
 
-  let opts = { issueDate: opt('date'), force: flag('force') };
+  let opts = { issueDate: opt('date'), force: flag('force'), newBeehiivDraft: flag('new-beehiiv-draft') };
   if (flag('mock')) opts = { ...opts, ...require('../tests/mocks/mockEnv').mockOptions() };
   const result = await runWorkflow(cmd, opts);
   console.log(JSON.stringify(result, null, 2));

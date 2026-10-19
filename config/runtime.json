@@ -25,10 +25,13 @@
     "web_fetch": { "type": "web_fetch_20260209", "name": "web_fetch", "max_content_tokens": 20000 }
   },
   "limits": {
-    "daily": { "max_calls": 6, "max_usd": 4, "scout_max_searches": 10, "rss_lookback_days": 2, "rss_max_items": 60 },
-    "weekly": { "max_calls": 30, "max_usd": 20, "research_batch_size": 3, "research_max_fetches": 12, "research_max_searches": 6, "fact_check_max_fetches": 10, "max_revisions": 1 },
+    "daily": { "max_calls": 8, "max_usd": 4, "scout_max_searches": 10, "rss_lookback_days": 2, "rss_max_items": 60 },
+    "weekly": { "max_calls": 50, "max_usd": 20, "research_batch_size": 3, "research_max_fetches": 12, "research_max_searches": 6, "fact_check_max_fetches": 10, "max_revisions": 1 },
     "max_output_tokens": 16000,
+    "stream_max_output_tokens": 64000,
     "request_timeout_ms": 600000,
+    "stream_timeout_ms": 1800000,
+    "stream_idle_timeout_ms": 180000,
     "max_pause_turns": 4,
     "retries": 3
   },

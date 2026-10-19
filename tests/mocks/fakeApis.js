@@ -2,6 +2,8 @@
 // Every company and domain here is fictional (*.example). Nothing in this file is real news.
 
 const NOW_ISO = () => fakeState.now.toISOString();
+// Fault switches for tests: writerFault ('max_tokens' | 'truncated'), expandInsufficient, reviseNoop,
+// beehiivPending (POST accepted, post never finishes), beehiivPostDropsConnection.
 const fakeState = { now: new Date('2026-10-18T14:00:00Z'), sent: false, calls: [], failBeehiiv: false, posts: {} };
 
 const MOCK_SOURCES = [
@@ -193,8 +195,30 @@ function write(user) {
   return claudeResponse(draft);
 }
 
+// Expansion pass: adds analysis that restates confirmed research (no new facts, links or prices).
+function expand(user) {
+  const draft = jsonAfter(user, 'Current draft:');
+  if (fakeState.expandInsufficient) return claudeResponse({ ...draft, expansion_note: 'Research packet supports no further material; left unchanged.' });
+  const research = jsonAfter(user, 'VERIFIED RESEARCH — the only facts, prices and links you may use:') || [];
+  const add = {
+    big5: research.filter((s) => (draft.sections.find((x) => x.id === 'big5')?.story_ids || []).includes(s.story_id)).map((s) =>
+      `**What to do with "${s.headline}":** ${s.claims.filter((c) => c.status === 'confirmed').map((c) => c.text).join(' ')} The practical question for an operator is whether this changes a decision you are making this quarter: what you build, what you buy, or what you tell customers. If it does, give one person the job of reading the source this week and writing a short note on what it means for your team, what it would cost to try, and what would make you stop. If it does not, file it and move on. ${(s.limitations || []).length ? `Keep in mind: ${s.limitations.join('; ')}.` : 'Rollout details and eligibility can differ by plan, so check the announcement before you commit time to it.'}`).join('\n\n'),
+    build_better: 'Why these three matter together: structured output makes results usable by other tools, examples make the format predictable, and a small eval tells you when a change breaks something. Teams that skip the eval step usually find out about regressions from a customer instead of from a test. Start with twenty real inputs from last month, write down the answer you expected for each, and rerun them every time you change the prompt, the model or the settings. Keep the file next to the prompt so whoever edits one sees the other.',
+    workflow: 'How to roll it out: run the flow in shadow mode for a week first, where the AI classifies and drafts but a person still handles every lead the old way, then compare the two. Track how often the person changed the classification or rewrote the reply. If edits are rare on cold and warm leads, let those drafts go out after a quick approval and keep hot leads fully manual. Write the classification rules down in plain language before you build anything; the prompt is only as good as the rules you give it.',
+    roi: 'How to check the estimate against your own numbers: time ten claims by hand before the pilot and ten after, and use your own loaded hourly cost rather than the placeholder above. The value only shows up if the saved time moves to work that matters, so decide in advance where adjuster hours will go. The biggest risk is a complex claim routed to the fast lane, so sample fast-lane decisions every week and track the reroute rate as the main KPI.',
+    ai101: 'Why it matters to non-engineers: once a tool your team already uses exposes an MCP server, an assistant can read from it or act in it without a custom integration project. That moves the conversation from "can we connect this?" to "should the assistant be allowed to do this?", which is a permissions and review question your operations lead can answer.',
+    what_not: 'A simple rule that covers most cases: if you would not email the data to an outside contractor without a contract, do not paste it into an AI tool without the same review. Ask your vendor where data is stored, how long it is kept and whether it is used for training, and write the answers down where your team can find them.',
+    hype: 'The reason this matters: a vendor-run benchmark measures the task the vendor chose, under settings the vendor picked. Your own twenty-row eval on your own inputs is a better buying signal than any leaderboard, and it takes an afternoon to build.',
+    one_thing: 'It takes five minutes, it helps you meet the disclosure rule covered above, and it sets the right expectations with customers, who are less frustrated by an assistant that says what it is.',
+  };
+  draft.sections = draft.sections.map((sec) => (add[sec.id] ? { ...sec, markdown: `${sec.markdown}\n\n${add[sec.id]}` } : sec));
+  draft.word_count = draft.sections.map((x) => x.markdown).join(' ').split(/\s+/).length;
+  return claudeResponse(draft);
+}
+
 function revise(user) {
   const draft = jsonAfter(user, 'Current draft:');
+  if (fakeState.reviseNoop) return claudeResponse(draft);
   draft.sections = draft.sections.map((s) => ({ ...s, markdown: s.markdown.split('\n').filter((l) => !/largest/i.test(l)).join('\n').trim() }));
   return claudeResponse(draft);
 }
@@ -206,6 +230,52 @@ function factCheck(user) {
     { claim: 'Tailspin Flows Team pricing as listed', section_id: 'tool_of_week', status: 'PASS', evidence_url: 'https://tailspin.example/pricing', correction: null, severity: 'high' }];
   if (/largest/i.test(all)) items.push({ claim: 'Atlas 3 is the largest model release of the quarter', section_id: 'big5', status: 'NEEDS_SOURCE', evidence_url: null, correction: 'remove', severity: 'high' });
   return claudeResponse({ verdict: 'PASS' /* code recomputes */, items }, { fetched: ['https://northwind.example/pricing'] });
+}
+
+// Server-sent-event version of a Message, cut into small chunks to exercise the stream parser.
+function streamResp(msg, { truncated = false } = {}) {
+  const ev = (o) => `event: ${o.type}\ndata: ${JSON.stringify(o)}\n\n`;
+  let out = ev({ type: 'message_start', message: { ...msg, content: [], stop_reason: null, usage: { input_tokens: msg.usage.input_tokens, output_tokens: 1 } } });
+  msg.content.forEach((b, i) => {
+    if (b.type === 'text') {
+      out += ev({ type: 'content_block_start', index: i, content_block: { type: 'text', text: '' } });
+      const half = Math.floor(b.text.length / 2);
+      for (const part of [b.text.slice(0, half), b.text.slice(half)]) out += ev({ type: 'content_block_delta', index: i, delta: { type: 'text_delta', text: part } });
+    } else out += ev({ type: 'content_block_start', index: i, content_block: b });
+    out += ev({ type: 'content_block_stop', index: i });
+  });
+  if (!truncated) out += ev({ type: 'message_delta', delta: { stop_reason: msg.stop_reason }, usage: { output_tokens: msg.usage.output_tokens } }) + ev({ type: 'message_stop' });
+  else out = out.slice(0, Math.floor(out.length * 0.8));
+  const bytes = new TextEncoder().encode(out);
+  const body = new ReadableStream({ start(c) { for (let i = 0; i < bytes.length; i += 97) c.enqueue(bytes.slice(i, i + 97)); c.close(); } });
+  return { status: 200, ok: true, headers: { get: () => null }, body, json: async () => { throw new Error('streamed'); }, text: async () => out };
+}
+
+function writerFault(r) {
+  if (!fakeState.writerFault) return r;
+  const msg = { ...r };
+  if (fakeState.writerFault === 'max_tokens') { msg.stop_reason = 'max_tokens'; msg.content = [{ type: 'text', text: msg.content.at(-1).text.slice(0, 300) }]; }
+  return msg;
+}
+
+function claudeRoute(body, resp) {
+    const sys = body.system || '';
+    const lastUser = [...body.messages].reverse().find((m) => m.role === 'user');
+    const user = typeof lastUser.content === 'string' ? lastUser.content : '';
+    if (body.messages.at(-1).role === 'assistant') return resp(200, research(body.messages[0].content)); // resumed pause_turn
+    if (/research scout/.test(sys)) return resp(200, scout());
+    if (/skeptical AI research analyst/.test(sys)) {
+      if (researchCalls === 0) { researchCalls++; return resp(200, claudeResponse(null, { pause: true, fetched: [] })); } // exercise pause_turn
+      return resp(200, research(user));
+    }
+    if (/final red-team editor/.test(sys)) return resp(200, factCheck(user));
+    if (/editor of AI Operator Weekly/.test(sys)) {
+      if (/You are PLANNING/.test(user)) return resp(200, plan(user));
+      if (/Revise this draft/.test(user)) return resp(200, revise(user));
+      if (/Expand this draft/.test(user)) return resp(200, expand(user));
+      return resp(200, write(user));
+    }
+    return resp(400, { error: 'mock: unrecognised agent' });
 }
 
 // ---------- fetch router ----------
@@ -223,35 +293,28 @@ async function fakeFetch(url, opts = {}) {
 
   if (u.endsWith('/v1/messages')) {
     const body = JSON.parse(opts.body);
-    const sys = body.system || '';
-    const lastUser = [...body.messages].reverse().find((m) => m.role === 'user');
-    const user = typeof lastUser.content === 'string' ? lastUser.content : '';
-    if (body.messages.at(-1).role === 'assistant') return resp(200, research(body.messages[0].content)); // resumed pause_turn
-    if (/research scout/.test(sys)) return resp(200, scout());
-    if (/skeptical AI research analyst/.test(sys)) {
-      if (researchCalls === 0) { researchCalls++; return resp(200, claudeResponse(null, { pause: true, fetched: [] })); } // exercise pause_turn
-      return resp(200, research(user));
-    }
-    if (/final red-team editor/.test(sys)) return resp(200, factCheck(user));
-    if (/editor of AI Operator Weekly/.test(sys)) {
-      if (/You are PLANNING/.test(user)) return resp(200, plan(user));
-      if (/Revise this draft/.test(user)) return resp(200, revise(user));
-      return resp(200, write(user));
-    }
-    return resp(400, { error: 'mock: unrecognised agent' });
+    const r = claudeRoute(body, resp);
+    if (!body.stream || r.status !== 200) return r;
+    const msg = await r.json();
+    const isWriter = /editor of AI Operator Weekly/.test(body.system || '') && !/You are PLANNING/.test(JSON.stringify(body.messages.at(-1)));
+    return streamResp(isWriter ? writerFault(msg) : msg, { truncated: isWriter && fakeState.writerFault === 'truncated' });
   }
+
 
   const bh = u.match(/^https:\/\/api\.beehiiv\.com\/v2\/publications\/(pub_[\w-]+)\/posts(?:\/(post_[\w-]+))?(\?.*)?$/);
   if (bh) {
     if (fakeState.failBeehiiv) return resp(401, { errors: [{ message: 'Invalid API key' }] });
     if ((opts.method || 'GET') === 'POST') {
       const body = JSON.parse(opts.body);
-      const id = 'post_00000000-0000-0000-0000-00000000aaaa';
-      fakeState.posts[id] = { status: body.status, body };
+      const n = Object.keys(fakeState.posts).length;
+      const id = `post_00000000-0000-0000-0000-0000000${String(0xaaaa + n).padStart(5, '0')}`;
+      fakeState.posts[id] = { status: body.status, body, pending: !!fakeState.beehiivPending };
+      if (fakeState.beehiivPostDropsConnection) throw new Error('socket hang up');
       return resp(201, { data: { id, preview_url: `https://app.beehiiv.com/posts/${id}/preview` } });
     }
     const post = fakeState.posts[bh[2]];
     if (!post) return resp(404, { errors: [{ code: 'POST_CREATION_FAILED' }] });
+    if (post.pending) return resp(202, { data: { id: bh[2] } }, { 'retry-after': '0' });
     if (!fakeState.sent) return resp(200, { data: { id: bh[2], status: 'draft' } });
     return resp(200, { data: { id: bh[2], status: 'confirmed', publish_date: Math.floor(fakeState.now.getTime() / 1000) - 86400,
       stats: { email: { recipients: 1200, delivered: 1190, opens: 700, unique_opens: 610, open_rate: 51.3, clicks: 180, unique_clicks: 140, click_rate: 11.8, unsubscribes: 3 },
@@ -260,4 +323,4 @@ async function fakeFetch(url, opts = {}) {
   return resp(404, `mock: no route for ${u}`);
 }
 
-module.exports = { fakeFetch, fakeState, MOCK_SOURCES, jsonAfter, resetMock: () => { researchCalls = 0; fakeState.calls = []; fakeState.sent = false; fakeState.failBeehiiv = false; fakeState.posts = {}; } };
+module.exports = { fakeFetch, fakeState, MOCK_SOURCES, jsonAfter, streamResp, claudeResponse, resetMock: () => { researchCalls = 0; Object.assign(fakeState, { calls: [], sent: false, failBeehiiv: false, posts: {}, writerFault: null, expandInsufficient: false, reviseNoop: false, beehiivPending: false, beehiivPostDropsConnection: false }); } };

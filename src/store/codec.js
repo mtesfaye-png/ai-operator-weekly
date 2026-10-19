@@ -9,7 +9,7 @@ const KEYS = { Sources: 'domain', Stories: 'story_id', Scores: 'story_id', Resea
 const CODECS = {
   Stories: { supporting_urls: 'lines', companies: 'csv', unresolved_questions: 'lines', merged_story_ids: 'lines', scores: { as: 'scores_json', kind: 'json' } },
   Research: { claims: { as: 'claims_json', kind: 'json' }, pricing: { as: 'pricing_json', kind: 'json' }, evidence_urls: 'lines', limitations: 'lines', direct_quotes: 'json', packet: { as: 'packet_json', kind: 'json' } },
-  Issues: { subject_options: 'lines', fact_check: { as: 'fact_check_json', kind: 'json' }, plan: { as: 'plan_json', kind: 'json' }, extra_research: { as: 'extra_research_json', kind: 'json' }, gate: { as: 'gate_json', kind: 'json' }, story_ids: 'lines' },
+  Issues: { subject_options: 'lines', fact_check: { as: 'fact_check_json', kind: 'json' }, plan: { as: 'plan_json', kind: 'json' }, extra_research: { as: 'extra_research_json', kind: 'json' }, gate: { as: 'gate_json', kind: 'json' }, story_ids: 'lines', review_flags: 'lines', previous_beehiiv_post_ids: 'lines' },
   Performance: { top_links: 'json', top_sections: 'json' },
 };
 

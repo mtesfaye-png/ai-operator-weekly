@@ -38,13 +38,20 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | Command | Does |
 |---|---|
 | `npm run daily` | Scout today's stories |
-| `npm run weekly -- --date 2026-10-24` | Produce that week's issue (defaults to today). Re-running a week that already has a draft does nothing unless you add `--force`. |
+| `npm run weekly -- --date 2026-10-24` | Produce that week's issue (defaults to today). Re-running a week that already has a draft does nothing unless you add `--force`. A week whose beehiiv post is still being created is only re-checked. |
+| `npm run weekly -- --force` | Regenerate the issue. If a beehiiv post already exists it is left untouched and **no second draft is created**: paste `out/<date>/issue.html` into it (status `regenerated_manual_update`). |
+| `npm run weekly -- --force --new-beehiiv-draft` | Regenerate and deliberately create a second beehiiv draft. The old post id is kept in `previous_beehiiv_post_ids`. Sent issues are never regenerated. |
 | `npm run analytics` | Pull stats for sent issues |
 | `npm run doctor` | Show which keys and services are configured |
 | `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 31 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review regressions |
+| `npm test` | 47 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review and stabilization regressions |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
+
+Issue statuses: `drafting` · `blocked` (gate failed, no beehiiv post) · `draft_pending` (beehiiv accepted the post
+but hadn't finished; the id is saved and the next weekly run checks it, don't paste a copy) · `draft_in_beehiiv` ·
+`manual_fallback` (paste `issue.html`; if the alert says the request *may* have reached beehiiv, check Posts first) ·
+`regenerated_manual_update` · `sent` (never changed again).
 
 ## Where things live
 
@@ -90,7 +97,21 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
   broken links, and missing required sections. Mixed `utm_source` values are a warning.
 - **Nothing can publish.** beehiiv payloads are always `draft`; scheduling and recipient fields are refused; only
   "create post" and "get post" calls are allowed; n8n workflows never touch beehiiv.
-- **Cost is capped.** Every call is estimated before it's made and recorded after; per-run caps in `runtime.json`.
+- **Cost is capped.** The cap is checked before every HTTP request to Claude (first request, each `pause_turn`
+  continuation, each JSON repair) and every completed request is logged with its own usage in `budget.json`.
+  Per-run caps in `runtime.json`.
+- **Incomplete output never moves on.** A `max_tokens` stop, a stream that ends early, a refusal, or a call still
+  paused after `max_pause_turns` continuations is an error: the run stops before the gate and nothing reaches
+  beehiiv. Calls without tools (plan, write, expand, revise, repairs) stream, so they can use a 64k output limit
+  (thinking included) without HTTP timeouts.
+- **One beehiiv post per issue.** The post id is saved the moment beehiiv answers 201, before polling. An accepted
+  post that hasn't finished is `draft_pending`, never "failed"; the create request is never retried
+  automatically.
+- **Length is handled, not faked.** A draft under 1,500 words gets one expansion pass that may only deepen what
+  the verified research supports; it is fact-checked and gated like everything else. If it is still short (or
+  over 2,200), the draft is kept and an **EDITOR REVIEW REQUIRED** box at the top of the draft, the Slack alert and
+  `Issues.review_flags` say so. Optional sections can still be left out. `[DRAFT TAKE]` placeholders are
+  highlighted in the draft as needing Mohil's approval and listed in the same box.
 - **Failures keep the work.** Research, draft and fact check are saved before beehiiv is called. Any failure
   alerts Slack and leaves the issue ready to paste.
 
@@ -98,6 +119,7 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 
 If the Claude API is down: run each prompt in `prompts/` by hand in Claude and paste results into Airtable.
 If beehiiv is down or not on a supporting plan: paste `out/<date>/issue.html` into a new beehiiv post.
+Delete the EDITOR REVIEW REQUIRED box (if any) before sending.
 
 ## Not yet verified against live services
 

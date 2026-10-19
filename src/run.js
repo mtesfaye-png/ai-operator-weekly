@@ -24,7 +24,7 @@ async function runWorkflow(workflow, opts = {}) {
   log.info(`Run ${runId} started (store: ${store.kind})`);
 
   try {
-    const result = await WORKFLOWS[workflow]({ cfg, fetchImpl, store, budget, log, issueDate: opts.issueDate, force: opts.force, now: opts.now || new Date() });
+    const result = await WORKFLOWS[workflow]({ cfg, fetchImpl, store, budget, log, issueDate: opts.issueDate, force: opts.force, newBeehiivDraft: opts.newBeehiivDraft, now: opts.now || new Date() });
     const status = result.status === 'blocked' ? 'warning' : 'ok';
     await log.finish(status, JSON.stringify({ ...result, gate: undefined }).slice(0, 4000), budget.calls);
     return { run_id: runId, workflow, ok: true, ...result, budget: budget.summary() };

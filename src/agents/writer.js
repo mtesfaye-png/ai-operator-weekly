@@ -1,6 +1,7 @@
 // Agent C — Writer. Three modes, one agent:
 //  plan   : choose stories per section and list what still needs research (pricing, resources, events)
 //  write  : draft the issue from verified research only
+//  expand : deepen a substantially short draft using only verified research (no new facts, links or prices)
 //  revise : fix a draft using the fact-check table and gate failures (remove or correct; never invent)
 
 const { askJson } = require('../claude');
@@ -62,7 +63,27 @@ async function writeIssue({ cfg, fetchImpl, budget, issueDate, packets, plan, mo
 - claims_used lists every claim_id you relied on.
 Return JSON only, matching the issue draft schema, with an extra optional "repeat_angles" object.`,
   ].join('\n\n');
-  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:write', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer'), maxTokens: cfg.runtime.limits.max_output_tokens });
+  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:write', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer') });
+  return data;
+}
+
+async function expandIssue({ cfg, fetchImpl, budget, draft, packets, plan, words }) {
+  const { min, max } = cfg.newsletter.word_target;
+  const user = [
+    `Expand this draft. It is ${words} words; the target is ${min}-${max}. Readers want deeper, more useful coverage, not more words.`,
+    `How to expand, using ONLY the verified research below:
+- Deepen what is already there: why each story matters, who should act and how, concrete steps in the workflow, business implications, risks and the KPI to watch, plain-English explanations of terms.
+- You may add an optional section the plan skipped only if the research clearly supports it.
+- Do NOT add facts, numbers, dates, prices, quotes, benchmarks, links or claims that are not in the research. Do NOT add filler, restatements, hype or generic advice.
+- Keep every existing rule: prices quoted as their "display" string, links only from evidence_urls/source_url, "Human review:", "Who it's for:", "Who should skip:", "Verdict:", "Estimate:" labels, [DRAFT TAKE - Mohil to confirm] markers left as they are.
+- If the research does not support more useful material, return the draft unchanged and say why in "expansion_note". A short honest issue beats a padded one.`,
+    `Locked sections:\n${sectionsSpec(cfg)}`,
+    `Plan:\n${json(plan)}`,
+    `VERIFIED RESEARCH — the only facts, prices and links you may use:\n${json(compactPacket(packets))}`,
+    `Current draft:\n${json(draft)}`,
+    'Return the complete draft as JSON matching the issue draft schema (with optional "expansion_note" and "repeat_angles"). Update claims_used and word_count.',
+  ].join('\n\n');
+  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:expand', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer') });
   return data;
 }
 
@@ -82,4 +103,4 @@ async function reviseIssue({ cfg, fetchImpl, budget, draft, packets, factCheck, 
   return data;
 }
 
-module.exports = { planIssue, writeIssue, reviseIssue, compactPacket };
+module.exports = { planIssue, writeIssue, expandIssue, reviseIssue, compactPacket };

@@ -59,6 +59,10 @@
     },
     "word_count": {
       "type": "integer"
+    },
+    "expansion_note": {
+      "type": "string",
+      "description": "Set by the expansion pass when the research could not support a longer issue."
     }
   }
 }

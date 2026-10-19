@@ -379,6 +379,12 @@
               },
               {
                 "name": "sent"
+              },
+              {
+                "name": "draft_pending"
+              },
+              {
+                "name": "regenerated_manual_update"
               }
             ]
           }
@@ -438,6 +444,14 @@
             },
             "timeZone": "America/New_York"
           }
+        },
+        {
+          "name": "review_flags",
+          "type": "multilineText"
+        },
+        {
+          "name": "previous_beehiiv_post_ids",
+          "type": "multilineText"
         }
       ]
     },

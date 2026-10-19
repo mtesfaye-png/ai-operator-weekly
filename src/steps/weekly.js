@@ -1,19 +1,21 @@
 // Weekly production run:
 // select -> research (reuse fresh research, refresh stale prices) -> plan -> research requests ->
-// write -> fact check -> gate -> (one revision) -> beehiiv DRAFT or manual fallback -> notify.
+// write -> (expand if short) -> fact check -> gate -> (one revision) -> beehiiv DRAFT or manual fallback -> notify.
 // There is no code path that publishes or sends. Mohil does that in beehiiv.
+// One beehiiv post per issue: once a post id is recorded, later runs (including --force) never create
+// another unless --new-beehiiv-draft is passed explicitly. Sent issues are never touched.
 
 const fs = require('fs');
 const path = require('path');
 const { runResearch } = require('../agents/researcher');
-const { planIssue, writeIssue, reviseIssue } = require('../agents/writer');
+const { planIssue, writeIssue, expandIssue, reviseIssue } = require('../agents/writer');
 const { factCheck } = require('../agents/factcheck');
 const { issueWindow, filterWindow } = require('../../lib/dates');
 const { dedupe } = require('../../lib/dedupe');
 const { selectStories, totalScore } = require('../../lib/scoring');
 const { freshnessPlan } = require('../../lib/pricing');
 const { runGate } = require('../../lib/quality_gate');
-const { createDraft, renderIssue } = require('../../lib/beehiiv');
+const { createDraft, checkDraft, renderIssue } = require('../../lib/beehiiv');
 const { todayIn, chunk } = require('../util');
 const { learningSummary } = require('./analytics');
 const { hostOf } = require('../agents/common');
@@ -83,7 +85,21 @@ ${html}
 </div></body></html>`;
 }
 
-async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = false, now = new Date() }) {
+const wordsOf = (draft) => draft.sections.map((s) => s.markdown).join('\n').split(/\s+/).filter(Boolean).length;
+
+// Things Mohil must decide before sending. Shown at the top of the draft, in Slack and in Issues.review_flags.
+function reviewFlagsFor({ draft, gate, cfg, expansionNote }) {
+  const { min, max } = cfg.newsletter.word_target;
+  const flags = [];
+  if (gate.word_count < min) flags.push(`Length: ${gate.word_count} words, under the ${min}-${max} target after an evidence-only expansion pass${expansionNote ? ` (writer: ${expansionNote})` : ''}. Add material, or approve sending it short.`);
+  if (gate.word_count > max) flags.push(`Length: ${gate.word_count} words, over the ${max}-word target. Trim, or keep it long for a big news week.`);
+  const takes = (draft.sections.map((s) => s.markdown).join('\n').match(/\[DRAFT TAKE/g) || []).length;
+  if (takes) flags.push(`${takes} "Mohil take" placeholder(s) marked [DRAFT TAKE] need Mohil's approval or rewrite.`);
+  gate.warnings.filter((w) => !['LENGTH', 'DRAFT_TAKES_PRESENT'].includes(w.code)).forEach((w) => flags.push(`${w.code}: ${w.detail}`));
+  return flags;
+}
+
+async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = false, newBeehiivDraft = false, now = new Date() }) {
   issueDate = issueDate || todayIn(cfg.timezone, now);
   const window = issueWindow(issueDate, cfg.newsletter.issue_window_days);
   const existing = await store.getIssue(issueDate);
@@ -91,7 +107,26 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
     log.info(`Issue ${issueDate} was already sent; it is never regenerated (its beehiiv post and stats stay linked)`);
     return { status: 'sent', skipped: true };
   }
-  if (existing && ['draft_in_beehiiv', 'sent'].includes(existing.status) && !force) {
+  const knownPost = existing?.beehiiv_post_id || null;
+  const beehiivOn = !!(cfg.beehiiv.apiKey && cfg.beehiiv.publicationId);
+  // beehiiv accepted a post earlier but hadn't finished creating it: check on it, never create another.
+  if (existing?.status === 'draft_pending' && knownPost) {
+    if (!beehiivOn) { log.warn(`Issue ${issueDate} has pending beehiiv post ${knownPost}, but beehiiv isn't configured to check it`); return { status: 'draft_pending', skipped: true }; }
+    const c = await checkDraft({ apiKey: cfg.beehiiv.apiKey, publicationId: cfg.beehiiv.publicationId, postId: knownPost, fetchImpl, alert: log.alert });
+    if (c.state === 'ready') {
+      await store.upsertIssue({ issue_date: issueDate, status: 'draft_in_beehiiv' });
+      await log.alert(`Draft ready for review: "${existing.subject_options?.[0] || issueDate}" ${existing.preview_url || ''}. Review, edit and send manually in beehiiv.`);
+      return { status: 'draft_in_beehiiv', recovered: true, beehiiv_post_id: knownPost, preview_url: existing.preview_url };
+    }
+    if (c.state === 'failed') {
+      await store.upsertIssue({ issue_date: issueDate, status: 'manual_fallback' });
+      await log.alert(`beehiiv post ${knownPost} for ${issueDate} failed to finish (${c.detail}). Paste ${path.join(cfg.outDir, issueDate, 'issue.html')} into a new beehiiv post. No new post was created automatically.`);
+      return { status: 'manual_fallback', beehiiv_post_id: knownPost };
+    }
+    log.info(`beehiiv post ${knownPost} for ${issueDate} is still pending (${c.detail}); not regenerating and not creating another post`);
+    return { status: 'draft_pending', skipped: true, beehiiv_post_id: knownPost };
+  }
+  if (['draft_in_beehiiv', 'regenerated_manual_update'].includes(existing?.status) && !force) {
     log.info(`Issue ${issueDate} already ${existing.status}; nothing to do (use --force to regenerate)`);
     return { status: existing.status, skipped: true };
   }
@@ -137,6 +172,16 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   // 5. Write -> fact check -> gate, with at most N revisions.
   const mohilNotes = existing?.mohil_notes || readNotes(cfg, issueDate);
   let draft = await writeIssue({ cfg, fetchImpl, budget, issueDate, packets: [packet], plan, mohilNotes });
+  // A substantially short draft gets one expansion pass from verified research only. It runs before the
+  // fact check, so everything it adds is checked and gated like the rest.
+  let expansionNote = null;
+  const firstWords = wordsOf(draft);
+  if (firstWords < cfg.newsletter.word_target.min) {
+    log.info(`Draft is ${firstWords} words (target ${cfg.newsletter.word_target.min}-${cfg.newsletter.word_target.max}); running an evidence-only expansion pass`);
+    draft = await expandIssue({ cfg, fetchImpl, budget, draft, packets: [packet], plan, words: firstWords });
+    expansionNote = draft.expansion_note || null;
+    log.info(`Expansion: ${firstWords} -> ${wordsOf(draft)} words${expansionNote ? ` (${expansionNote})` : ''}`);
+  }
   let fc, gate;
   for (let round = 0; ; round++) {
     fc = await factCheck({ cfg, fetchImpl, budget, draft, packets: [packet], now });
@@ -147,7 +192,8 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   }
 
   // 6. Persist everything before touching beehiiv, so nothing is lost on failure.
-  const { markdown, html } = renderIssue(draft);
+  const reviewFlags = reviewFlagsFor({ draft, gate, cfg, expansionNote });
+  const { markdown, html } = renderIssue(draft, { reviewFlags });
   const subject = draft.subject_options[0];
   const dir = writeBackup(cfg, issueDate, {
     'issue.md': `# ${subject}\n\n_${draft.preview_text}_\n\nSubject options:\n${draft.subject_options.map((s) => `- ${s}`).join('\n')}\n\n${markdown}`,
@@ -157,7 +203,7 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   const record = {
     issue_date: issueDate, subject_options: draft.subject_options, preview_text: draft.preview_text,
     body_html: html, body_markdown: markdown, fact_check: fc, gate, plan, extra_research: extraPackets,
-    gate_result: gate.pass ? 'PASS' : 'FAIL', story_ids: [...new Set(draft.sections.flatMap((s) => s.story_ids || []))],
+    gate_result: gate.pass ? 'PASS' : 'FAIL', story_ids: [...new Set(draft.sections.flatMap((s) => s.story_ids || []))], review_flags: reviewFlags,
     api_calls_used: budget.calls, est_cost_usd: budget.summary().est_usd,
   };
 
@@ -168,16 +214,25 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   }
 
   // 7. beehiiv draft (or manual fallback when beehiiv isn't configured / plan doesn't allow the API).
+  const flagNote = reviewFlags.length ? ` Needs your decision: ${reviewFlags.join(' | ')}.` : '';
   let result;
-  if (!cfg.beehiiv.apiKey || !cfg.beehiiv.publicationId) {
+  if (knownPost && !newBeehiivDraft) {
+    // Regenerated (--force, or re-run after a failure) for an issue that already has a beehiiv post.
+    result = { status: 'regenerated_manual_update' };
+    await log.alert(`Issue ${issueDate} was regenerated. Existing beehiiv post ${knownPost} was NOT changed and no second draft was created. Paste ${path.join(dir, 'issue.html')} into that post, or re-run with --new-beehiiv-draft to create a separate draft.${flagNote}`);
+  } else if (!beehiivOn) {
     result = { status: 'manual_fallback', reason: 'beehiiv API not configured' };
-    await log.alert(`Issue ${issueDate} passed the gate. beehiiv API isn't configured, so paste ${path.join(dir, 'issue.html')} into a new beehiiv post. Subject: "${subject}"`);
+    await log.alert(`Issue ${issueDate} passed the gate. beehiiv API isn't configured, so paste ${path.join(dir, 'issue.html')} into a new beehiiv post. Subject: "${subject}".${flagNote}`);
   } else {
-    result = await createDraft({ draft, apiKey: cfg.beehiiv.apiKey, publicationId: cfg.beehiiv.publicationId, templateId: cfg.beehiiv.templateId || undefined, subject, fetchImpl, alert: log.alert });
-    if (result.status === 'draft_in_beehiiv') await log.alert(`Draft ready for review: "${subject}" ${result.preview_url}. ${gate.warnings.length ? `Warnings: ${gate.warnings.map((w) => w.detail).join('; ')}.` : ''} Review, edit and send manually in beehiiv.`);
+    const previous = knownPost ? [...(existing.previous_beehiiv_post_ids || []), knownPost] : undefined;
+    result = await createDraft({
+      draft, apiKey: cfg.beehiiv.apiKey, publicationId: cfg.beehiiv.publicationId, templateId: cfg.beehiiv.templateId || undefined, subject, reviewFlags, fetchImpl, alert: log.alert,
+      onAccepted: (a) => store.upsertIssue({ ...record, ...a, status: 'draft_pending', previous_beehiiv_post_ids: previous }),
+    });
+    if (result.status === 'draft_in_beehiiv') await log.alert(`Draft ready for review: "${subject}" ${result.preview_url}.${flagNote} Review, edit and send manually in beehiiv.`);
   }
   await store.upsertIssue({ ...record, status: result.status, beehiiv_post_id: result.beehiiv_post_id, preview_url: result.preview_url });
-  return { status: result.status, preview_url: result.preview_url, out_dir: dir, warnings: gate.warnings, budget: budget.summary() };
+  return { status: result.status, beehiiv_post_id: result.beehiiv_post_id || knownPost || undefined, preview_url: result.preview_url, out_dir: dir, warnings: gate.warnings, review_flags: reviewFlags, word_count: gate.word_count, budget: budget.summary() };
 }
 
 function readNotes(cfg, issueDate) {

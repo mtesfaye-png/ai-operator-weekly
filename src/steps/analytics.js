@@ -16,7 +16,7 @@ function sectionForUrl(markdown, url) {
 
 async function analytics({ cfg, fetchImpl, store, log, now = new Date() }) {
   if (!cfg.beehiiv.apiKey || !cfg.beehiiv.publicationId) { log.warn('beehiiv API not configured; skipping analytics'); return { skipped: true }; }
-  const issues = (await store.listIssues()).filter((i) => i.beehiiv_post_id && ['draft_in_beehiiv', 'sent'].includes(i.status));
+  const issues = (await store.listIssues()).filter((i) => i.beehiiv_post_id); // any status: a regenerated or recovered draft can be sent too
   const updated = [];
   for (const issue of issues) {
     let res;

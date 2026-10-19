@@ -18,7 +18,8 @@ class LocalStore {
     const rows = await this.all(t);
     for (const o of objs) {
       const i = rows.findIndex((r) => r[key] === o[key]);
-      if (i >= 0) rows[i] = { ...rows[i], ...o }; else rows.push(o);
+      const defined = Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)); // undefined never erases a value (same as Airtable)
+      if (i >= 0) rows[i] = { ...rows[i], ...defined }; else rows.push(defined);
     }
     await this.write(t, rows);
   }
