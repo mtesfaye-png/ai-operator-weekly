@@ -1,0 +1,12 @@
+{
+  "_about": "Human-verified official pricing domains. Each key is a vendor domain; its values are other domains where that SAME vendor publishes its own prices. Subdomains of every entry count. A price is official only if its page is on the product vendor's own domains: being Tier 1 in sources.csv never makes a page official for a different vendor. Add a vendor only after checking that the domain belongs to it. Seeded from the pricing locations noted in sources.csv.",
+  "vendors": {
+    "openai.com": ["chatgpt.com"],
+    "anthropic.com": ["claude.com"],
+    "blog.google": ["ai.google.dev", "google.com"],
+    "deepmind.google": ["ai.google.dev", "google.com"],
+    "blogs.microsoft.com": ["microsoft.com"],
+    "blogs.nvidia.com": ["nvidia.com"],
+    "github.blog": ["github.com"]
+  }
+}

@@ -13,7 +13,8 @@ function compactPacket(packets) {
   return packets.flatMap((p) => p.stories).map((s) => ({
     story_id: s.story_id, verified: s.verified, event_date: s.event_date || null, headline: s.headline,
     claims: s.claims.map((c) => ({ claim_id: c.claim_id, text: c.text, type: c.claim_type, status: c.status, evidence_urls: c.evidence_urls })),
-    pricing: (s.pricing || []).map((p) => ({ product: p.product, plan: p.plan, display: p.display, free_tier: p.free_tier, key_limits: p.key_limits, source_url: p.source_url, official: p.source_is_official })),
+    pricing: (s.pricing || []).filter((p) => p.source_is_official === true).map((p) => ({ // unverified prices are never shown to the writer
+      product: p.product, plan: p.plan, display: p.display, free_tier: p.free_tier, key_limits: p.key_limits, source_url: p.source_url, official: p.source_is_official })),
     limitations: s.limitations, direct_quotes: s.direct_quotes || [],
   }));
 }

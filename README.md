@@ -44,7 +44,7 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `npm run analytics` | Pull stats for sent issues |
 | `npm run doctor` | Show which keys and services are configured |
 | `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 47 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review and stabilization regressions |
+| `npm test` | 57 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 
@@ -74,6 +74,7 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 | Scoring weights, diversity, dedupe sensitivity | `config/scoring.json` |
 | Sections, word target, banned superlatives (and harmless phrases like "best practices"), price freshness (72h) | `config/newsletter.json` |
 | Agent behaviour | `prompts/*.md` (keep output shapes in line with `schemas/`) |
+| Official pricing domains per vendor (e.g. Anthropic → claude.com) | `config/official_pricing_domains.json`. Only add a domain after checking it belongs to that vendor |
 | Models, effort per agent, refusal fallback, search/fetch limits, budget caps, API prices | `config/runtime.json`. Re-check prices on Anthropic's pricing page when models change. Set `refusal_fallback` to `null` to turn the server-side fallback off. |
 | Mohil's takes | `notes/<issue-date>.md` or the Issues row's `mohil_notes` field |
 | Gate rules | `lib/quality_gate.js`, and add a test for each new rule |
@@ -84,7 +85,11 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
   Anything else is stripped and the claim becomes *unverified*, which the writer can't use. Pricing, benchmark and
   funding claims need a page that was actually fetched.
 - **Prices are fresh and official.** "Checked on" times come from the fetch, not the model. A price only counts if
-  its page is on the vendor's domain. Stored research with prices older than 72 hours is re-fetched on re-runs.
+  its page was fetched successfully and is on the *product vendor's* own domains: the vendor's verified domain
+  (Tier 1 in the registry, or the story's own fetched primary page) or a domain listed for that vendor in
+  `config/official_pricing_domains.json`. A Tier 1 page is never official for a different vendor, and
+  publisher/community domains are never vendors. Otherwise the price is marked unverified, hidden from the
+  writer, and the gate blocks the issue (`PRICE_UNVERIFIED`). Stored research with prices older than 72 hours is re-fetched on re-runs.
 - **Dates are event dates.** Crawl dates are ignored for the issue window.
 - **Fact check is independent.** It runs on a different model (Opus, effort `high`) than the writer, and FAIL is
   recomputed in code from the table. A request Claude declines (`refusal`) fails the step loudly instead of
@@ -120,6 +125,11 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 If the Claude API is down: run each prompt in `prompts/` by hand in Claude and paste results into Airtable.
 If beehiiv is down or not on a supporting plan: paste `out/<date>/issue.html` into a new beehiiv post.
 Delete the EDITOR REVIEW REQUIRED box (if any) before sending.
+
+## First live test
+
+See [`docs/FIRST_LIVE_TEST.md`](docs/FIRST_LIVE_TEST.md): Anthropic only, local storage, a lowered app-side cap
+(`AOW_MAX_USD`), and why a provider-side spend limit is still needed.
 
 ## Not yet verified against live services
 

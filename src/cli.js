@@ -44,7 +44,10 @@ function doctor() {
   ];
   for (const [k, ok, note] of rows) console.log(`${ok ? '✔' : '✘'} ${k.padEnd(42)} ${note}`);
   console.log(`\nModels: ${Object.entries(cfg.runtime.models).map(([k, v]) => `${k}=${v}`).join(', ')}`);
-  console.log(`Budget caps: daily $${cfg.runtime.limits.daily.max_usd}, weekly $${cfg.runtime.limits.weekly.max_usd}`);
+  const { effectiveMaxUsd } = require('./run');
+  const lim = cfg.runtime.limits;
+  console.log(`Budget caps (app-side estimates, not a provider limit): daily $${effectiveMaxUsd(lim.daily.max_usd)} / ${lim.daily.max_calls} calls, weekly $${effectiveMaxUsd(lim.weekly.max_usd)} / ${lim.weekly.max_calls} calls${process.env.AOW_MAX_USD ? ' (lowered by AOW_MAX_USD)' : ''}`);
+  console.log(`Daily run will contact: Anthropic API${cfg.anthropic.apiKey ? '' : ' (no key: will fail)'}, public RSS feeds (no account)${cfg.airtable.token && cfg.airtable.baseId ? ', Airtable' : ''}${cfg.alerts.slackWebhook ? ', Slack' : ''}. beehiiv is not used by daily.`);
   console.log(`Data: ${cfg.airtable.token ? 'Airtable' : path.relative(process.cwd(), cfg.dataDir) || cfg.dataDir} · Exports: ${cfg.outDir}`);
   return cfg.anthropic.apiKey ? 0 : 1;
 }

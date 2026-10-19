@@ -200,4 +200,4 @@ async function askJson({ schema, user, ...opts }) {
   return { data: parsed, retrieved: first.retrieved, usage: first.usage };
 }
 
-module.exports = { callClaude, askJson, extractJson, toolDefs };
+module.exports = { callClaude, askJson, extractJson, toolDefs, collectRetrieved };

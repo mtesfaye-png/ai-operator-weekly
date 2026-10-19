@@ -12,13 +12,19 @@ const { analytics } = require('./steps/analytics');
 
 const WORKFLOWS = { daily, weekly, analytics };
 
+// AOW_MAX_USD can only LOWER the per-run cap from runtime.json (e.g. AOW_MAX_USD=1 for a first live test).
+function effectiveMaxUsd(configured) {
+  const env = Number(process.env.AOW_MAX_USD);
+  return Number.isFinite(env) && env > 0 ? Math.min(configured, env) : configured;
+}
+
 async function runWorkflow(workflow, opts = {}) {
   if (!WORKFLOWS[workflow]) throw new Error(`Unknown workflow "${workflow}". Use: ${Object.keys(WORKFLOWS).join(', ')}`);
   const cfg = opts.cfg || load();
   const fetchImpl = opts.fetchImpl || fetch;
   const store = makeStore(cfg, fetchImpl);
   const lim = cfg.runtime.limits[workflow] || { max_calls: 5, max_usd: 1 };
-  const budget = new Budget({ maxCalls: lim.max_calls, maxUsd: lim.max_usd, rates: cfg.runtime.rates_usd });
+  const budget = new Budget({ maxCalls: lim.max_calls, maxUsd: effectiveMaxUsd(lim.max_usd), rates: cfg.runtime.rates_usd });
   const runId = newRunId(workflow);
   const log = makeLogger({ store, workflow, runId, alertFn: makeAlert(cfg, fetchImpl) });
   log.info(`Run ${runId} started (store: ${store.kind})`);
@@ -36,4 +42,4 @@ async function runWorkflow(workflow, opts = {}) {
   }
 }
 
-module.exports = { runWorkflow, WORKFLOWS };
+module.exports = { runWorkflow, WORKFLOWS, effectiveMaxUsd };

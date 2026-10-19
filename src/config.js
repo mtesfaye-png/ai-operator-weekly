@@ -26,6 +26,7 @@ function load() {
     outDir: env.AOW_OUT_DIR || path.join(ROOT, 'out'),
     scoring: readJson('scoring.json'),
     newsletter: readJson('newsletter.json'),
+    officialPricing: readJson('official_pricing_domains.json').vendors,
     runtime,
     anthropic: {
       apiKey: env.ANTHROPIC_API_KEY || '',

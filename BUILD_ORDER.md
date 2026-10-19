@@ -84,6 +84,20 @@ Analysis for the truncation fix: a 2,200-word draft is roughly 3-5k output token
 expand and revise calls. Those calls use no tools, so streaming them is simple: no `pause_turn`, no server-tool
 blocks. Tool-using calls (scout, research, fact check) return compact JSON and stay non-streaming at 16k.
 
+## Pricing-source fix (2026-10-19)
+
+From an independent check. Regression tests in `tests/pricing_sources.test.js`.
+
+| Issue | Fix |
+|---|---|
+| `enforce()` marked a price official if its page was on ANY Tier 1 domain, so Vendor B's pricing page counted as official for Vendor A | Official only if the fetched page is on the product vendor's own domains (subdomains included). A vendor domain is trusted only if it is Tier 1 in the registry, the story's fetched primary page, or listed in `config/official_pricing_domains.json`. Registry Tier 2-4 domains are never vendors |
+| A price with no vendor domain, or no official flag, could pass | Marked unverified with a reason, withheld from the writer; the gate blocks with `PRICE_UNVERIFIED` unless a price is explicitly official |
+| A price could still reach the copy through a `pricing` claim citing another vendor's page | Pricing claims follow the same official-domain rule |
+| Vendor blogs (`blog.google`, `github.blog`, `blogs.microsoft.com`) publish prices on other domains | `config/official_pricing_domains.json`, seeded only from the pricing locations already noted in `sources.csv` |
+
+Prepared for the first live test: `AOW_MAX_USD` (can only lower the app-side cap), a `doctor` line listing which
+services `daily` will contact, and `docs/FIRST_LIVE_TEST.md`.
+
 ## Remaining live setup (needs real accounts)
 
 1. **Gate 0:** confirm the beehiiv plan includes the Create Post API, then get the API key, publication id and
