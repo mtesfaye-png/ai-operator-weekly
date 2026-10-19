@@ -20,5 +20,6 @@
     { "id": "watch_next", "title": "What to Watch Next", "required": false, "count": [3, 5] }
   ],
   "banned_unsupported_phrases": ["the best", "best-in-class", "the first", "first-ever", "the largest", "largest", "times better", "x better", "revolutionary", "game-changing", "game changer", "unprecedented"],
+  "benign_phrases": ["best practice", "best practices", "best for", "best plan", "the first time you", "the first time they", "the first time it", "at first"],
   "verdicts": ["Use", "Watch", "Skip"]
 }

@@ -27,11 +27,13 @@ function storyItem(s) {
 }
 
 // Research items, reusing stored research whose prices are still fresh (saves cost on re-runs).
-async function researchItems({ cfg, fetchImpl, budget, store, log, items, mode, sources, now }) {
+// Only research done for THIS issue week is reused: request ids such as "req-tool-of-week" repeat
+// every week with a different question, so older rows must never stand in for new research.
+async function researchItems({ cfg, fetchImpl, budget, store, log, items, mode, sources, now, window }) {
   const stored = await store.getResearch(items.map((i) => i.story_id));
   const reuse = [], todo = [];
   for (const it of items) {
-    const r = stored.find((x) => x.story_id === it.story_id && x.packet);
+    const r = stored.find((x) => x.story_id === it.story_id && x.packet && String(x.checked_at || '').slice(0, 10) >= window.start);
     const stale = r && freshnessPlan(r.packet.pricing || [], { now, maxAgeHours: cfg.newsletter.price_max_age_hours }).refresh.length > 0;
     if (r && !stale) reuse.push(r.packet);
     else { if (stale) log.info(`Refreshing stale pricing for ${it.story_id}`); todo.push(it); }
@@ -85,6 +87,10 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   issueDate = issueDate || todayIn(cfg.timezone, now);
   const window = issueWindow(issueDate, cfg.newsletter.issue_window_days);
   const existing = await store.getIssue(issueDate);
+  if (existing?.status === 'sent') {
+    log.info(`Issue ${issueDate} was already sent; it is never regenerated (its beehiiv post and stats stay linked)`);
+    return { status: 'sent', skipped: true };
+  }
   if (existing && ['draft_in_beehiiv', 'sent'].includes(existing.status) && !force) {
     log.info(`Issue ${issueDate} already ${existing.status}; nothing to do (use --force to regenerate)`);
     return { status: existing.status, skipped: true };
@@ -111,7 +117,7 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   log.info(`Selected: ${selected.map((s) => `${s.story_id} (${s.total_score})`).join(', ')}`);
 
   // 3. Verify selected stories.
-  const storyPackets = await researchItems({ cfg, fetchImpl, budget, store, log, items: selected.map(storyItem), mode: 'stories', sources, now });
+  const storyPackets = await researchItems({ cfg, fetchImpl, budget, store, log, items: selected.map(storyItem), mode: 'stories', sources, now, window });
   await store.upsertStories(selected.map((s) => ({ story_id: s.story_id, status: 'researched' })));
 
   // 4. Plan the issue, then research what the plan still needs.
@@ -124,8 +130,8 @@ async function weekly({ cfg, fetchImpl, store, budget, log, issueDate, force = f
   if (plan.tool_of_week && !requests.some((r) => r.kind === 'tool_pricing' && (r.vendor_domains || []).includes(plan.tool_of_week.vendor_domain))) {
     requests.unshift({ story_id: `req-tool-of-week`, kind: 'tool_pricing', question: `Current official pricing, free tier, plan limits and alternatives for ${plan.tool_of_week.product} (${plan.tool_of_week.use_case})`, urls: plan.tool_of_week.pricing_url_hint ? [plan.tool_of_week.pricing_url_hint] : [], vendor_domains: [plan.tool_of_week.vendor_domain] });
   }
-  const changePackets = changeItems.length ? await researchItems({ cfg, fetchImpl, budget, store, log, items: changeItems, mode: 'stories', sources, now }) : [];
-  const extraPackets = requests.length ? await researchItems({ cfg, fetchImpl, budget, store, log, items: requests, mode: 'requests', sources, now }) : [];
+  const changePackets = changeItems.length ? await researchItems({ cfg, fetchImpl, budget, store, log, items: changeItems, mode: 'stories', sources, now, window }) : [];
+  const extraPackets = requests.length ? await researchItems({ cfg, fetchImpl, budget, store, log, items: requests, mode: 'requests', sources, now, window }) : [];
   const packet = mergePackets(storyPackets, changePackets, extraPackets);
 
   // 5. Write -> fact check -> gate, with at most N revisions.

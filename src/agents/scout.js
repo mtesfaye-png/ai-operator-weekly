@@ -21,7 +21,7 @@ async function runScout({ cfg, fetchImpl, budget, window, sources, seedItems, le
   const envelope = { type: 'object', required: ['stories'], properties: { stories: { type: 'array' } } };
   const { data } = await askJson({
     cfg, fetchImpl, budget, step: 'scout', schema: envelope, user,
-    model: cfg.runtime.models.scout, system: loadPrompt(cfg, 'scout'),
+    model: cfg.runtime.models.scout, effort: cfg.runtime.effort?.scout, system: loadPrompt(cfg, 'scout'),
     tools: toolDefs(cfg, { search: lim.scout_max_searches }),
   });
 

@@ -36,7 +36,7 @@ async function planIssue({ cfg, fetchImpl, budget, issueDate, packets, toolCandi
 5. research_requests (story_id "req-..."): everything the writing still needs verified — official pricing for the tool of the week and for every paid tool you'll name in the workflow and stack, 3-5 resource URLs (official docs, repos, guides) to confirm, and dated sources for 3-5 "What to Watch" items. Include vendor_domains for pricing requests.
 JSON only, matching the plan schema.`,
   ].filter(Boolean).join('\n\n');
-  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:plan', schema: loadSchema('issue_plan'), user, model: cfg.runtime.models.writer, system: loadPrompt(cfg, 'writer') });
+  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:plan', schema: loadSchema('issue_plan'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer') });
   return data;
 }
 
@@ -62,7 +62,7 @@ async function writeIssue({ cfg, fetchImpl, budget, issueDate, packets, plan, mo
 - claims_used lists every claim_id you relied on.
 Return JSON only, matching the issue draft schema, with an extra optional "repeat_angles" object.`,
   ].join('\n\n');
-  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:write', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, system: loadPrompt(cfg, 'writer'), maxTokens: cfg.runtime.limits.max_output_tokens });
+  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:write', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer'), maxTokens: cfg.runtime.limits.max_output_tokens });
   return data;
 }
 
@@ -78,7 +78,7 @@ async function reviseIssue({ cfg, fetchImpl, budget, draft, packets, factCheck, 
     `Current draft:\n${json(draft)}`,
     'Return the complete revised draft as JSON matching the issue draft schema.',
   ].join('\n\n');
-  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:revise', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, system: loadPrompt(cfg, 'writer') });
+  const { data } = await askJson({ cfg, fetchImpl, budget, step: 'writer:revise', schema: loadSchema('issue_draft'), user, model: cfg.runtime.models.writer, effort: cfg.runtime.effort?.writer, system: loadPrompt(cfg, 'writer') });
   return data;
 }
 

@@ -50,3 +50,18 @@ the sense of *polish* — the blocking safety pieces already exist from Step 1�
 | Failure preserves body + alerts | `lib/beehiiv.js` fallback + test |
 | Cost cap | `lib/budget.js` + test |
 | No path to send | `lib/beehiiv.js` allow-list + test; re-verify in n8n in Step 8 |
+
+## Review pass (2026-10-19)
+
+Code read end to end against the brief. Fixed, each with a regression test in `tests/review_fixes.test.js`:
+
+| Issue | Fix |
+|---|---|
+| Gate blocked ordinary phrases ("best practices", "the first time you…") as superlatives, so a normal Build Better section stopped the issue | `benign_phrases` in `newsletter.json`, stripped before matching |
+| Brief §9 "links render correctly / UTM consistent" was not enforced | Gate blocks bare and broken links; mixed `utm_source` is a warning |
+| Request ids (`req-tool-of-week`, `req-resource-…`) repeat weekly; research with no prices never looked stale, so last week's answer could be reused | Stored research is reused only if checked inside the current issue window |
+| `--force` could regenerate a sent issue and overwrite its beehiiv post id (breaking analytics) | Sent issues are never regenerated |
+| Web tools on the 2025 versions; no effort set (Opus 5.5 defaults to `medium`, too low for the fact checker); `refusal` produced an empty answer | `web_search_20260209` / `web_fetch_20260209`, `effort` per agent in `runtime.json`, server-side refusal fallback, refusals throw |
+| Resumed `pause_turn` requests weren't budget-checked | Budget checked before each continuation |
+
+Still open (need real accounts): Gate 0 checks, first live `daily` + `weekly`, live beehiiv draft reviewed by Mohil, Loom.

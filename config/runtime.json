@@ -5,6 +5,13 @@
     "writer": "claude-sonnet-5-5",
     "fact_checker": "claude-opus-5-5"
   },
+  "effort": {
+    "scout": "medium",
+    "researcher": "high",
+    "writer": "high",
+    "fact_checker": "high"
+  },
+  "refusal_fallback": "default",
   "rates_usd": {
     "claude-opus-5-5": { "input_per_mtok": 4, "output_per_mtok": 20 },
     "claude-sonnet-5-5": { "input_per_mtok": 2, "output_per_mtok": 10 },
@@ -14,8 +21,8 @@
     "rates_source": "https://platform.claude.com/docs/en/about-claude/pricing"
   },
   "tools": {
-    "web_search": { "type": "web_search_20250305", "name": "web_search" },
-    "web_fetch": { "type": "web_fetch_20250910", "name": "web_fetch", "max_content_tokens": 20000 }
+    "web_search": { "type": "web_search_20260209", "name": "web_search" },
+    "web_fetch": { "type": "web_fetch_20260209", "name": "web_fetch", "max_content_tokens": 20000 }
   },
   "limits": {
     "daily": { "max_calls": 6, "max_usd": 4, "scout_max_searches": 10, "rss_lookback_days": 2, "rss_max_items": 60 },

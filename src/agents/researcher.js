@@ -68,7 +68,7 @@ async function runResearch({ cfg, fetchImpl, budget, items, mode, sources, now =
 
   const { data, retrieved } = await askJson({
     cfg, fetchImpl, budget, step: `research:${mode}`, schema, user,
-    model: cfg.runtime.models.researcher, system: loadPrompt(cfg, 'researcher'),
+    model: cfg.runtime.models.researcher, effort: cfg.runtime.effort?.researcher, system: loadPrompt(cfg, 'researcher'),
     tools: toolDefs(cfg, { search: lim.research_max_searches, fetch: lim.research_max_fetches }),
   });
   const notes = enforce(data, retrieved, { sources, vendorDomains });

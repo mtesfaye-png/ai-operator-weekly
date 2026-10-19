@@ -42,7 +42,7 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `npm run analytics` | Pull stats for sent issues |
 | `npm run doctor` | Show which keys and services are configured |
 | `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 25 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks |
+| `npm test` | 31 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review regressions |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 
@@ -65,9 +65,9 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 |---|---|
 | Sources | `config/sources.csv` before setup, then the Airtable **Sources** table (untick `active` to pause one) |
 | Scoring weights, diversity, dedupe sensitivity | `config/scoring.json` |
-| Sections, word target, banned superlatives, price freshness (72h) | `config/newsletter.json` |
+| Sections, word target, banned superlatives (and harmless phrases like "best practices"), price freshness (72h) | `config/newsletter.json` |
 | Agent behaviour | `prompts/*.md` (keep output shapes in line with `schemas/`) |
-| Models, search/fetch limits, budget caps, API prices | `config/runtime.json`. Re-check prices on Anthropic's pricing page when models change. |
+| Models, effort per agent, refusal fallback, search/fetch limits, budget caps, API prices | `config/runtime.json`. Re-check prices on Anthropic's pricing page when models change. Set `refusal_fallback` to `null` to turn the server-side fallback off. |
 | Mohil's takes | `notes/<issue-date>.md` or the Issues row's `mohil_notes` field |
 | Gate rules | `lib/quality_gate.js`, and add a test for each new rule |
 
@@ -79,12 +79,15 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 - **Prices are fresh and official.** "Checked on" times come from the fetch, not the model. A price only counts if
   its page is on the vendor's domain. Stored research with prices older than 72 hours is re-fetched on re-runs.
 - **Dates are event dates.** Crawl dates are ignored for the issue window.
-- **Fact check is independent.** It runs on a different model (Opus) than the writer, and FAIL is recomputed in
-  code from the table.
+- **Fact check is independent.** It runs on a different model (Opus, effort `high`) than the writer, and FAIL is
+  recomputed in code from the table. A request Claude declines (`refusal`) fails the step loudly instead of
+  producing an empty answer; the server-side fallback is tried first.
+- **Research belongs to its week.** Stored research is reused only on re-runs of the same issue week, so a
+  request id like `req-tool-of-week` can never pick up last month's answer. A sent issue is never regenerated.
 - **The gate blocks** unsourced links, unverified claims, stale or unofficial prices, prices without a checked
   date, out-of-window stories, repeated story angles, unsupported "best / first / largest / Nx", unlabelled ROI
-  dollars, workflows without a human review step, tool picks without audience / skip / verdict, and missing
-  required sections.
+  dollars, workflows without a human review step, tool picks without audience / skip / verdict, bare or
+  broken links, and missing required sections. Mixed `utm_source` values are a warning.
 - **Nothing can publish.** beehiiv payloads are always `draft`; scheduling and recipient fields are refused; only
   "create post" and "get post" calls are allowed; n8n workflows never touch beehiiv.
 - **Cost is capped.** Every call is estimated before it's made and recorded after; per-run caps in `runtime.json`.

@@ -2,6 +2,7 @@
 // - Resumes `pause_turn` responses (long-running server tools)
 // - Retries 429 / 5xx / 529 with backoff, honouring retry-after
 // - Records the cost of every request in the run Budget
+// - Sets effort per agent; opts into server-side refusal fallback; fails loudly on a final refusal
 // - Returns every URL Claude actually retrieved (search results + fetched pages, with retrieved_at)
 //   so downstream code can reject evidence URLs that were never opened.
 
@@ -32,8 +33,12 @@ function collectRetrieved(content, into) {
   }
 }
 
+const FALLBACK_BETA = 'server-side-fallback-2026-07-01';
+
 async function post(cfg, fetchImpl, body) {
   const { retries, request_timeout_ms } = cfg.runtime.limits;
+  const headers = { 'x-api-key': cfg.anthropic.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' };
+  if (body.fallbacks) headers['anthropic-beta'] = FALLBACK_BETA;
   let lastErr;
   for (let attempt = 0; attempt <= retries; attempt++) {
     const ctrl = new AbortController();
@@ -42,7 +47,7 @@ async function post(cfg, fetchImpl, body) {
     try {
       res = await fetchImpl(`${cfg.anthropic.baseUrl}/v1/messages`, {
         method: 'POST',
-        headers: { 'x-api-key': cfg.anthropic.apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        headers,
         body: JSON.stringify(body),
         signal: ctrl.signal,
       });
@@ -64,7 +69,7 @@ async function post(cfg, fetchImpl, body) {
 }
 
 // One logical agent call. Returns { text, retrieved, usage, stop_reason }.
-async function callClaude({ cfg, fetchImpl, budget, step, model, system, messages, tools = [], maxTokens }) {
+async function callClaude({ cfg, fetchImpl, budget, step, model, system, messages, tools = [], maxTokens, effort }) {
   if (!cfg.anthropic.apiKey) throw new Error('ANTHROPIC_API_KEY is not set');
   // Pre-flight estimate: prompt size (~4 chars/token), a modest output, and the full search allowance.
   const maxSearches = tools.find((t) => t.name === 'web_search')?.max_uses || 0;
@@ -74,10 +79,14 @@ async function callClaude({ cfg, fetchImpl, budget, step, model, system, message
   const usage = { input_tokens: 0, output_tokens: 0, searches: 0, fetches: 0 };
   let finalText = '';
   let stop = null;
+  let stopDetails = null;
 
   for (let turn = 0; turn <= cfg.runtime.limits.max_pause_turns; turn++) {
+    if (turn > 0) budget.check({ model, ...usage }); // a resumed turn is another paid request
     const body = { model, max_tokens: maxTokens || cfg.runtime.limits.max_output_tokens, system, messages: convo };
     if (tools.length) body.tools = tools;
+    if (effort) body.output_config = { effort };
+    if (cfg.runtime.refusal_fallback) body.fallbacks = cfg.runtime.refusal_fallback;
     const res = await post(cfg, fetchImpl, body);
     const u = res.usage || {};
     usage.input_tokens += (u.input_tokens || 0) + (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
@@ -87,11 +96,13 @@ async function callClaude({ cfg, fetchImpl, budget, step, model, system, message
     collectRetrieved(res.content, retrieved);
     finalText = (res.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
     stop = res.stop_reason;
+    stopDetails = res.stop_details || null;
     if (stop !== 'pause_turn') break;
     convo.push({ role: 'assistant', content: res.content });
   }
 
   budget.record(step, { model, ...usage });
+  if (stop === 'refusal') throw new Error(`${step}: Claude declined the request (${stopDetails?.category || 'no category'}); fallback model also declined or is off. Re-run, or do this step by hand with prompts/.`);
   if (stop === 'max_tokens') throw new Error(`${step}: response hit max_tokens; raise limits.max_output_tokens or shrink the batch`);
   return { text: finalText, retrieved, usage, stop_reason: stop };
 }
