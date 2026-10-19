@@ -1,0 +1,18 @@
+{
+  "name": "ai-operator-weekly",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Research, ranking, writing, fact-check and draft-only beehiiv pipeline for AI Operator Weekly",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "doctor": "node src/cli.js doctor",
+    "daily": "node src/cli.js daily",
+    "weekly": "node src/cli.js weekly",
+    "analytics": "node src/cli.js analytics",
+    "start": "node src/server.js",
+    "demo": "rm -rf data-mock out-mock && node src/cli.js daily --mock && node src/cli.js weekly --mock && AOW_MOCK_SENT=1 node src/cli.js analytics --mock",
+    "airtable:dry": "node airtable/setup_airtable.js --dry-run",
+    "airtable:setup": "node airtable/setup_airtable.js"
+  },
+  "engines": { "node": ">=20" }
+}

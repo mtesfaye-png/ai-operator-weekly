@@ -1,0 +1,21 @@
+{
+  "weights": {
+    "importance": 0.30,
+    "usefulness": 0.25,
+    "business_value": 0.20,
+    "novelty": 0.15,
+    "audience_fit": 0.10
+  },
+  "scale": { "min": 1, "max": 5 },
+  "selection": {
+    "top_stories": 5,
+    "max_per_category": 2,
+    "required_category_mix": ["frontier_models", "tools", "enterprise", "business", "regulation", "open_source", "workflow", "infrastructure"],
+    "min_distinct_categories": 3,
+    "min_confidence": 0.6
+  },
+  "dedupe": {
+    "title_similarity_threshold": 0.55,
+    "same_event_day_window": 3
+  }
+}

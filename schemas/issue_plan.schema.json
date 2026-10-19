@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "IssuePlan",
+  "type": "object",
+  "required": ["big5_story_ids", "tool_changes_story_ids", "tool_of_week", "sections", "research_requests"],
+  "properties": {
+    "big5_story_ids": { "type": "array", "items": { "type": "string" }, "maxItems": 5 },
+    "tool_changes_story_ids": { "type": "array", "items": { "type": "string" } },
+    "tool_of_week": {
+      "type": ["object", "null"],
+      "required": ["product", "vendor_domain", "use_case"],
+      "properties": { "product": { "type": "string" }, "vendor_domain": { "type": "string" }, "use_case": { "type": "string" }, "pricing_url_hint": { "type": ["string", "null"] }, "source_story_id": { "type": ["string", "null"] } }
+    },
+    "sections": {
+      "type": "object",
+      "description": "One short brief per optional section the writer intends to include; omit a key to skip that section.",
+      "properties": {
+        "ai101": { "type": "string" }, "build_better": { "type": "string" }, "workflow": { "type": "string" },
+        "stack": { "type": "string" }, "roi": { "type": "string" }, "what_not": { "type": "string" },
+        "hype": { "type": "string" }, "one_thing": { "type": "string" }
+      }
+    },
+    "research_requests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["story_id", "kind", "question"],
+        "properties": {
+          "story_id": { "type": "string", "pattern": "^req-[a-z0-9-]+$" },
+          "kind": { "enum": ["tool_pricing", "resource", "event", "fact"] },
+          "question": { "type": "string" },
+          "urls": { "type": "array", "items": { "type": "string" } },
+          "vendor_domains": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "maxItems": 14
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "AI Operator Weekly",
+  "owner": "Mohil",
+  "issue_window_days": 7,
+  "word_target": { "min": 1500, "max": 2200 },
+  "price_max_age_hours": 72,
+  "sections": [
+    { "id": "big5", "title": "The 5 Biggest Things in AI", "required": true, "fields": ["what_happened", "why_it_matters", "who_should_care", "mohil_take", "sources"] },
+    { "id": "tool_changes", "title": "What Changed in Tools", "required": false },
+    { "id": "tool_of_week", "title": "Tool of the Week", "required": false, "fields": ["use_case", "pricing", "free_tier", "best_plan", "pros", "cons", "alternatives", "who_its_for", "who_should_skip", "verdict"] },
+    { "id": "ai101", "title": "AI 101 -> AI Pro", "required": false },
+    { "id": "build_better", "title": "Build Better", "required": true, "fields": ["practices[3]: practice, example, failure_mode"] },
+    { "id": "workflow", "title": "Workflow of the Week", "required": false, "fields": ["problem", "tools", "steps", "cost", "difficulty", "human_review_checkpoint", "prompt_or_template"] },
+    { "id": "stack", "title": "AI Stack of the Week", "required": false, "fields": ["role", "tools", "total_monthly_cost", "cheaper_alternative"] },
+    { "id": "roi", "title": "AI -> ROI", "required": false, "fields": ["use_case", "before", "after", "value_drivers", "risks", "kpi", "assumptions"] },
+    { "id": "what_not", "title": "What Not to Do", "required": false },
+    { "id": "hype", "title": "Overhyped / Underhyped", "required": false },
+    { "id": "resources", "title": "Resources Worth Saving", "required": false, "count": [3, 5] },
+    { "id": "one_thing", "title": "One Thing to Try", "required": true },
+    { "id": "watch_next", "title": "What to Watch Next", "required": false, "count": [3, 5] }
+  ],
+  "banned_unsupported_phrases": ["the best", "best-in-class", "the first", "first-ever", "the largest", "largest", "times better", "x better", "revolutionary", "game-changing", "game changer", "unprecedented"],
+  "verdicts": ["Use", "Watch", "Skip"]
+}

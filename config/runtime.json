@@ -1,0 +1,31 @@
+{
+  "models": {
+    "scout": "claude-sonnet-5-5",
+    "researcher": "claude-sonnet-5-5",
+    "writer": "claude-sonnet-5-5",
+    "fact_checker": "claude-opus-5-5"
+  },
+  "rates_usd": {
+    "claude-opus-5-5": { "input_per_mtok": 4, "output_per_mtok": 20 },
+    "claude-sonnet-5-5": { "input_per_mtok": 2, "output_per_mtok": 10 },
+    "claude-haiku-5-5": { "input_per_mtok": 0.1, "output_per_mtok": 0.5 },
+    "per_web_search": 0.01,
+    "rates_checked_at": "2026-10-18",
+    "rates_source": "https://platform.claude.com/docs/en/about-claude/pricing"
+  },
+  "tools": {
+    "web_search": { "type": "web_search_20250305", "name": "web_search" },
+    "web_fetch": { "type": "web_fetch_20250910", "name": "web_fetch", "max_content_tokens": 20000 }
+  },
+  "limits": {
+    "daily": { "max_calls": 6, "max_usd": 4, "scout_max_searches": 10, "rss_lookback_days": 2, "rss_max_items": 60 },
+    "weekly": { "max_calls": 30, "max_usd": 20, "research_batch_size": 3, "research_max_fetches": 12, "research_max_searches": 6, "fact_check_max_fetches": 10, "max_revisions": 1 },
+    "max_output_tokens": 16000,
+    "request_timeout_ms": 600000,
+    "max_pause_turns": 4,
+    "retries": 3
+  },
+  "retry_base_ms": 5000,
+  "tool_changes_max": 4,
+  "dedupe_lookback_days": 10
+}

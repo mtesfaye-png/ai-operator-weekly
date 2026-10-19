@@ -1,0 +1,102 @@
+{
+  "name": "AI Operator Weekly - Analytics",
+  "active": false,
+  "settings": {
+    "timezone": "America/New_York",
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Every day 10:00am ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-AOW-SERVER/run/analytics",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Pull issue stats",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "AOW Trigger Token"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/ME",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: 'AI Operator Weekly: analytics pull could not be started. ' + ($json.error?.message || '') }) }}",
+        "options": {}
+      },
+      "name": "Alert: analytics did not start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Every day 10:00am ET": {
+      "main": [
+        [
+          {
+            "node": "Pull issue stats",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pull issue stats": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Alert: analytics did not start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

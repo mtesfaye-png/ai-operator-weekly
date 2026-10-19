@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "FactCheckReport",
+  "type": "object",
+  "required": [
+    "verdict",
+    "items"
+  ],
+  "properties": {
+    "verdict": {
+      "enum": [
+        "PASS",
+        "FAIL"
+      ]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "claim",
+          "status",
+          "severity"
+        ],
+        "properties": {
+          "claim": {
+            "type": "string"
+          },
+          "section_id": {
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PASS",
+              "NEEDS_SOURCE",
+              "INCORRECT",
+              "OVERSTATED",
+              "STALE",
+              "AMBIGUOUS"
+            ]
+          },
+          "evidence_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "high",
+              "medium",
+              "low"
+            ]
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,647 @@
+{
+  "base_name": "AI Operator Weekly",
+  "tables": [
+    {
+      "name": "Sources",
+      "fields": [
+        {
+          "name": "name",
+          "type": "singleLineText"
+        },
+        {
+          "name": "domain",
+          "type": "singleLineText"
+        },
+        {
+          "name": "tier",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "category",
+          "type": "singleLineText"
+        },
+        {
+          "name": "rss_url",
+          "type": "url"
+        },
+        {
+          "name": "active",
+          "type": "checkbox",
+          "options": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "name": "trust_notes",
+          "type": "multilineText"
+        }
+      ]
+    },
+    {
+      "name": "Stories",
+      "fields": [
+        {
+          "name": "story_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "headline",
+          "type": "singleLineText"
+        },
+        {
+          "name": "event_date",
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            }
+          }
+        },
+        {
+          "name": "crawled_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "primary_url",
+          "type": "url"
+        },
+        {
+          "name": "supporting_urls",
+          "type": "multilineText"
+        },
+        {
+          "name": "source",
+          "type": "singleLineText"
+        },
+        {
+          "name": "category",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "frontier_models"
+              },
+              {
+                "name": "tools"
+              },
+              {
+                "name": "enterprise"
+              },
+              {
+                "name": "business"
+              },
+              {
+                "name": "regulation"
+              },
+              {
+                "name": "open_source"
+              },
+              {
+                "name": "workflow"
+              },
+              {
+                "name": "infrastructure"
+              }
+            ]
+          }
+        },
+        {
+          "name": "companies",
+          "type": "singleLineText"
+        },
+        {
+          "name": "factual_summary",
+          "type": "multilineText"
+        },
+        {
+          "name": "why_it_might_matter",
+          "type": "multilineText"
+        },
+        {
+          "name": "unresolved_questions",
+          "type": "multilineText"
+        },
+        {
+          "name": "pricing_change",
+          "type": "checkbox",
+          "options": {
+            "icon": "flag",
+            "color": "redBright"
+          }
+        },
+        {
+          "name": "status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "candidate"
+              },
+              {
+                "name": "duplicate"
+              },
+              {
+                "name": "rejected"
+              },
+              {
+                "name": "selected"
+              },
+              {
+                "name": "researched"
+              },
+              {
+                "name": "published"
+              }
+            ]
+          }
+        },
+        {
+          "name": "source_tier",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "total_score",
+          "type": "number",
+          "options": {
+            "precision": 2
+          }
+        },
+        {
+          "name": "merged_story_ids",
+          "type": "multilineText"
+        },
+        {
+          "name": "scores_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "confidence",
+          "type": "number",
+          "options": {
+            "precision": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "Scores",
+      "fields": [
+        {
+          "name": "story_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "importance",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "usefulness",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "business_value",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "novelty",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "audience_fit",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "confidence",
+          "type": "number",
+          "options": {
+            "precision": 2
+          }
+        },
+        {
+          "name": "total_score",
+          "type": "number",
+          "options": {
+            "precision": 2
+          }
+        },
+        {
+          "name": "weights_version",
+          "type": "singleLineText"
+        }
+      ]
+    },
+    {
+      "name": "Research",
+      "fields": [
+        {
+          "name": "story_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "claims_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "evidence_urls",
+          "type": "multilineText"
+        },
+        {
+          "name": "pricing_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "limitations",
+          "type": "multilineText"
+        },
+        {
+          "name": "direct_quotes",
+          "type": "multilineText"
+        },
+        {
+          "name": "checked_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "verified",
+          "type": "checkbox",
+          "options": {
+            "icon": "check",
+            "color": "greenBright"
+          }
+        },
+        {
+          "name": "packet_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "issue_date",
+          "type": "singleLineText"
+        }
+      ]
+    },
+    {
+      "name": "Issues",
+      "fields": [
+        {
+          "name": "issue_date",
+          "type": "singleLineText"
+        },
+        {
+          "name": "subject_options",
+          "type": "multilineText"
+        },
+        {
+          "name": "preview_text",
+          "type": "singleLineText"
+        },
+        {
+          "name": "body_html",
+          "type": "multilineText"
+        },
+        {
+          "name": "body_markdown",
+          "type": "multilineText"
+        },
+        {
+          "name": "fact_check_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "gate_result",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "PASS"
+              },
+              {
+                "name": "FAIL"
+              }
+            ]
+          }
+        },
+        {
+          "name": "status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "drafting"
+              },
+              {
+                "name": "blocked"
+              },
+              {
+                "name": "draft_in_beehiiv"
+              },
+              {
+                "name": "manual_fallback"
+              },
+              {
+                "name": "sent"
+              }
+            ]
+          }
+        },
+        {
+          "name": "beehiiv_post_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "preview_url",
+          "type": "url"
+        },
+        {
+          "name": "api_calls_used",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "est_cost_usd",
+          "type": "currency",
+          "options": {
+            "precision": 2,
+            "symbol": "$"
+          }
+        },
+        {
+          "name": "mohil_notes",
+          "type": "multilineText"
+        },
+        {
+          "name": "plan_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "extra_research_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "gate_json",
+          "type": "multilineText"
+        },
+        {
+          "name": "story_ids",
+          "type": "multilineText"
+        },
+        {
+          "name": "sent_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Content Ideas",
+      "fields": [
+        {
+          "name": "idea",
+          "type": "singleLineText"
+        },
+        {
+          "name": "source_story",
+          "type": "singleLineText"
+        },
+        {
+          "name": "format",
+          "type": "singleLineText"
+        },
+        {
+          "name": "reuse_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "new"
+              },
+              {
+                "name": "used"
+              },
+              {
+                "name": "parked"
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Performance",
+      "fields": [
+        {
+          "name": "issue_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "opens",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "open_rate",
+          "type": "percent",
+          "options": {
+            "precision": 1
+          }
+        },
+        {
+          "name": "clicks",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "click_rate",
+          "type": "percent",
+          "options": {
+            "precision": 1
+          }
+        },
+        {
+          "name": "unsubscribes",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "top_links",
+          "type": "multilineText"
+        },
+        {
+          "name": "top_sections",
+          "type": "multilineText"
+        },
+        {
+          "name": "pulled_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Pain Points",
+      "fields": [
+        {
+          "name": "reader_reply",
+          "type": "multilineText"
+        },
+        {
+          "name": "company_role",
+          "type": "singleLineText"
+        },
+        {
+          "name": "pain",
+          "type": "multilineText"
+        },
+        {
+          "name": "frequency",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "willingness_to_pay_signal",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "none"
+              },
+              {
+                "name": "weak"
+              },
+              {
+                "name": "strong"
+              }
+            ]
+          }
+        },
+        {
+          "name": "follow_up",
+          "type": "checkbox",
+          "options": {
+            "icon": "check",
+            "color": "blueBright"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Run Log",
+      "fields": [
+        {
+          "name": "run_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "workflow",
+          "type": "singleLineText"
+        },
+        {
+          "name": "started_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "ok"
+              },
+              {
+                "name": "warning"
+              },
+              {
+                "name": "error"
+              }
+            ]
+          }
+        },
+        {
+          "name": "message",
+          "type": "multilineText"
+        },
+        {
+          "name": "api_calls",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        }
+      ]
+    }
+  ]
+}

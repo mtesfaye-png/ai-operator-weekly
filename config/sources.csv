@@ -1,0 +1,30 @@
+name,domain,tier,category,rss_url,active,trust_notes
+OpenAI News,openai.com,1,frontier_models,https://openai.com/news/rss.xml,true,Primary for OpenAI releases; pricing at openai.com/api/pricing
+Anthropic News,anthropic.com,1,frontier_models,,true,Primary for Claude releases; API pricing at docs.anthropic.com / claude.com/pricing
+Google DeepMind Blog,deepmind.google,1,frontier_models,https://deepmind.google/blog/rss.xml,true,Primary for Gemini research and model cards
+Google AI / Gemini Blog,blog.google,1,frontier_models,https://blog.google/technology/ai/rss/,true,Product launches; check ai.google.dev/pricing for API prices
+Microsoft AI Blog,blogs.microsoft.com,1,enterprise,https://blogs.microsoft.com/ai/feed/,true,Copilot and Azure AI announcements
+Meta AI Blog,ai.meta.com,1,open_source,,true,Llama releases; verify licence terms on model card
+NVIDIA Blog,blogs.nvidia.com,1,infrastructure,https://blogs.nvidia.com/feed/,true,Hardware and inference; marketing-heavy so confirm benchmarks
+xAI News,x.ai,1,frontier_models,,true,Primary for Grok; sparse docs so pair with Tier 2
+Hugging Face Blog,huggingface.co,1,open_source,https://huggingface.co/blog/feed.xml,true,Open model releases and model cards
+GitHub Changelog,github.blog,1,tools,https://github.blog/changelog/feed/,true,Copilot feature and pricing changes
+Reuters Technology,reuters.com,2,business,,true,Funding / M&A / regulation confirmation
+Bloomberg Technology,bloomberg.com,2,business,,true,Paywalled; cite headline facts only
+Financial Times Tech,ft.com,2,business,,true,Paywalled; regulation and enterprise deals
+Wall Street Journal Tech,wsj.com,2,business,,true,Paywalled
+TechCrunch AI,techcrunch.com,2,tools,https://techcrunch.com/category/artificial-intelligence/feed/,true,Funding and startup launches
+The Verge AI,theverge.com,2,tools,https://www.theverge.com/rss/ai-artificial-intelligence/index.xml,true,Consumer product context
+VentureBeat AI,venturebeat.com,2,enterprise,https://venturebeat.com/category/ai/feed/,true,Enterprise adoption
+CNBC Tech,cnbc.com,2,business,,true,Earnings and market context
+The Rundown AI,therundown.ai,3,discovery,,true,Discovery only - never copy framing; trace to source
+Superhuman AI,superhuman.ai,3,discovery,,true,Discovery only
+TLDR AI,tldr.tech,3,discovery,,true,Discovery only
+Ben's Bites,bensbites.com,3,discovery,,true,Discovery only
+The Batch,deeplearning.ai,3,discovery,,true,Discovery only; good for research context
+Import AI,importai.substack.com,3,discovery,https://importai.substack.com/feed,true,Discovery only; policy and research
+Latent Space,latent.space,3,discovery,https://www.latent.space/feed,true,Discovery only; engineering practice
+Hacker News,news.ycombinator.com,4,community,https://hnrss.org/frontpage?q=AI+OR+LLM+OR+GPT+OR+Claude,true,Signal only - label anecdotal
+Product Hunt AI,producthunt.com,4,community,,true,Signal only
+GitHub Trending,github.com,4,community,,true,Signal only; check stars velocity not totals
+r/LocalLLaMA,reddit.com,4,community,https://www.reddit.com/r/LocalLLaMA/.rss,true,Signal only - open model practitioner chatter

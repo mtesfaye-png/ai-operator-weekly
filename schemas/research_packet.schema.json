@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ResearchPacket",
+  "type": "object",
+  "required": [
+    "generated_at",
+    "stories"
+  ],
+  "properties": {
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "stories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "story_id",
+          "verified",
+          "claims",
+          "limitations"
+        ],
+        "properties": {
+          "story_id": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean"
+          },
+          "event_date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "claim_id",
+                "text",
+                "claim_type",
+                "status",
+                "evidence_urls"
+              ],
+              "properties": {
+                "claim_id": {
+                  "type": "string"
+                },
+                "text": {
+                  "type": "string"
+                },
+                "claim_type": {
+                  "enum": [
+                    "release",
+                    "feature",
+                    "pricing",
+                    "availability",
+                    "funding",
+                    "benchmark",
+                    "quote",
+                    "adoption",
+                    "regulation",
+                    "other"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "confirmed",
+                    "inferred",
+                    "unverified"
+                  ]
+                },
+                "evidence_urls": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https?://"
+                  }
+                },
+                "source_tier": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 4
+                }
+              }
+            }
+          },
+          "pricing": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "product",
+                "plan",
+                "amount",
+                "currency",
+                "billing_basis",
+                "source_url",
+                "checked_at"
+              ],
+              "properties": {
+                "product": {
+                  "type": "string"
+                },
+                "plan": {
+                  "type": "string"
+                },
+                "amount": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "currency": {
+                  "type": "string",
+                  "pattern": "^[A-Z]{3}$"
+                },
+                "billing_basis": {
+                  "enum": [
+                    "per_month",
+                    "per_seat_month",
+                    "per_year",
+                    "per_million_input_tokens",
+                    "per_million_output_tokens",
+                    "usage_based",
+                    "annual_only",
+                    "one_time",
+                    "free",
+                    "custom"
+                  ]
+                },
+                "free_tier": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "key_limits": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "source_url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://"
+                },
+                "source_is_official": {
+                  "type": "boolean"
+                },
+                "checked_at": {
+                  "type": "string",
+                  "format": "date-time"
+                }
+              }
+            }
+          },
+          "limitations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "direct_quotes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "text",
+                "url"
+              ],
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "maxLength": 200
+                },
+                "url": {
+                  "type": "string",
+                  "format": "uri",
+                  "pattern": "^https?://"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "tool_of_week": {
+      "type": [
+        "object",
+        "null"
+      ]
+    }
+  }
+}

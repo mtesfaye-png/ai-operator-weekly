@@ -1,0 +1,102 @@
+{
+  "name": "AI Operator Weekly - Daily Scout",
+  "active": false,
+  "settings": {
+    "timezone": "America/New_York",
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all"
+  },
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "45 6 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Every day 6:45am ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://YOUR-AOW-SERVER/run/daily",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "name": "Start daily scout",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "AOW Trigger Token"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/REPLACE/ME",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: 'AI Operator Weekly: the daily scout could not be started. ' + ($json.error?.message || 'Check the trigger server.') }) }}",
+        "options": {}
+      },
+      "name": "Alert: scout did not start",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Every day 6:45am ET": {
+      "main": [
+        [
+          {
+            "node": "Start daily scout",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start daily scout": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Alert: scout did not start",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
