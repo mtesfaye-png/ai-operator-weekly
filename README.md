@@ -46,7 +46,7 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `npm run doctor` | Show which keys and services are configured |
 | `node src/cli.js airtable-check` | Read back the Articles mirrored to Airtable and check for missing or duplicate rows (1 call per 100 rows) |
 | `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 67 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection |
+| `npm test` | 71 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 

@@ -101,8 +101,14 @@ Check these on Airtable's pricing page and **Workspace settings → Summary**.
 - **No duplicates, no losses.** Upserts merge on `article_id`. A batch is marked synced only after Airtable accepts
   it. A failed sync leaves articles queued locally and is retried next run. The 429 "billing limit" error stops
   at once instead of retrying.
-- **Local state.** `data/` is the source of truth for the archive and the usage ledger. Keep it on the machine
-  that runs `collect`. A cloud session's container is temporary.
+- **Restarts.** If `data/airtable_sync_state.json` is missing (new cloud container, new machine) or names a
+  different base, `collect` first reads the base's article IDs (1 call per 100 rows, fields `article_id` only)
+  and marks those local articles as synced, before writing anything. If that read fails, nothing is written that
+  run and candidates stay queued locally. A lost archive costs at most one extra read, never duplicates.
+- **API counter.** `data/airtable_usage.json` only counts this machine's calls and restarts at 0 in a new
+  container. Airtable's own count in **Workspace settings → Summary** is the authoritative figure.
+- **Initial import.** Use `--max-sync N` to lower the per-run cap, e.g. `collect --days 7 --max-sync 10`.
+  It can't raise the cap.
 
 ### Setup, step by step (≈ 4–15 API calls, once)
 
@@ -121,8 +127,10 @@ Check these on Airtable's pricing page and **Workspace settings → Summary**.
    AIRTABLE_TOKEN=pat...
    AIRTABLE_WORKSPACE_ID=wsp...
    ```
-   In a Claude Code cloud session, add these as environment variables in the environment settings instead of
-   typing them into the chat. Also add `api.airtable.com` to the network allowlist.
+   In a Claude Code cloud session, add both as **environment variables** named exactly `AIRTABLE_TOKEN` and
+   `AIRTABLE_WORKSPACE_ID` (environment menu in the session title bar → Edit), not in chat. Also add
+   `api.airtable.com` (and `latent.space`) under Allowed domains. Start a new session afterwards: running
+   sessions don't pick up changes.
 5. **Preview.** Run `npm run airtable:dry`. It makes no calls.
 6. **Create the tables.** Run `npm run airtable:setup` (≈ 4 calls). It prints `AIRTABLE_BASE_ID=app…`. Add that line to `.env`.
    - If base creation is refused on Free, create an empty base named **AI Operator Weekly** in the

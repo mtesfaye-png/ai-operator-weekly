@@ -10,6 +10,7 @@ const { collect: fetchFeeds } = require('../rss');
 const { normalizeUrl } = require('../../lib/dedupe');
 const { LocalStore, makeStore } = require('../store');
 const usage = require('../store/usage');
+const syncState = require('../store/sync_state');
 const { todayIn } = require('../util');
 
 const PENDING_CLAUDE = 'ai_scores, story_category, companies, factual_summary, research, fact_check';
@@ -60,7 +61,7 @@ function normalize(item, { runId, nowIso, tz }) {
   };
 }
 
-async function collectRss({ cfg, fetchImpl, store, log, runId, lookbackDays, now = new Date() }) {
+async function collectRss({ cfg, fetchImpl, store, log, runId, lookbackDays, maxSync, now = new Date() }) {
   const lim = cfg.runtime.limits.collect;
   const at = cfg.runtime.airtable;
   const days = lookbackDays || lim.lookback_days;
@@ -102,7 +103,7 @@ async function collectRss({ cfg, fetchImpl, store, log, runId, lookbackDays, now
   await local.upsert('Articles', archive.map((a) => ({ article_id: a.article_id, ...classify(a, lim) })));
 
   const airtable = store.kind === 'airtable'
-    ? (airtableOn ? await syncCandidates({ cfg, store, local, sources, log, now }) : { skipped: 'monthly_call_budget_reached' })
+    ? (airtableOn ? await syncCandidates({ cfg, store, local, sources, log, now, maxSync }) : { skipped: 'monthly_call_budget_reached' })
     : { skipped: 'not_configured' };
   if (store.kind === 'airtable') airtable.calls_this_month = usage.addCalls(cfg.dataDir, store.apiCalls(), now);
 
@@ -134,16 +135,37 @@ async function collectRss({ cfg, fetchImpl, store, log, runId, lookbackDays, now
 // remaining record budget for the base, and remaining monthly calls. Each batch of 10 is marked synced
 // only after Airtable accepts it, and upserts merge on article_id, so a failed or repeated run neither
 // loses nor duplicates articles: anything unsynced is retried next run.
-async function syncCandidates({ cfg, store, local, sources, log, now }) {
+async function syncCandidates({ cfg, store, local, sources, log, now, maxSync }) {
   const lim = cfg.runtime.limits.collect, at = cfg.runtime.airtable;
+  let remoteCount = 0, reconciled = null;
+  // Local sync state is missing (fresh cloud container, new machine, new base): learn which articles
+  // Airtable already has BEFORE writing anything. If that read fails, write nothing this run.
+  const state = syncState.read(cfg.dataDir);
+  if (state?.base_id !== cfg.airtable.baseId) {
+    let ids;
+    try { ids = await store.listArticleIds(); }
+    catch (e) {
+      log.warn(`Airtable reconcile failed, nothing written; candidates stay local and retry next run: ${e.message}`);
+      return { synced: 0, reconciled: false, error: e.message };
+    }
+    const have = new Set(ids);
+    const known = (await local.all('Articles')).filter((a) => have.has(a.article_id) && !a.airtable_synced_at);
+    await local.upsert('Articles', known.map((a) => ({ article_id: a.article_id, airtable_synced_at: now.toISOString() })));
+    syncState.write(cfg.dataDir, { base_id: cfg.airtable.baseId, reconciled_at: now.toISOString(), airtable_article_count: have.size });
+    remoteCount = have.size;
+    reconciled = { airtable_articles: have.size, marked_synced_locally: known.length };
+    log.info(`Airtable reconcile: ${have.size} articles already in the base, ${known.length} local articles marked synced`);
+  }
   const all = await local.all('Articles');
   const since = new Date(now.getTime() - lim.airtable_sync_window_days * 86400000).toISOString();
   const pending = all.filter((a) => a.editorial_candidate && !a.airtable_synced_at && a.first_seen_at >= since)
     .sort((a, b) => a.source_tier - b.source_tier || String(b.published_at).localeCompare(String(a.published_at)));
-  const recordsUsed = sources.length + all.filter((a) => a.airtable_synced_at).length;
+  // Articles in Airtable that this machine never saw still use records, so take the larger count.
+  const recordsUsed = sources.length + Math.max(remoteCount, state?.airtable_article_count || 0, all.filter((a) => a.airtable_synced_at).length);
   const recordRoom = Math.max(0, at.record_budget - recordsUsed);
   const callRoom = Math.max(0, at.monthly_call_budget - usage.usedThisMonth(cfg.dataDir, now) - store.apiCalls());
-  const take = pending.slice(0, Math.min(lim.airtable_max_new_per_run, recordRoom, callRoom * 10));
+  const perRun = Math.min(lim.airtable_max_new_per_run, maxSync >= 0 ? maxSync : Infinity); // --max-sync can only lower it
+  const take = pending.slice(0, Math.min(perRun, recordRoom, callRoom * 10));
 
   let synced = 0, error = null;
   for (let i = 0; i < take.length; i += 10) {
@@ -154,9 +176,9 @@ async function syncCandidates({ cfg, store, local, sources, log, now }) {
     await local.upsert('Articles', batch.map((a) => ({ article_id: a.article_id, airtable_synced_at: now.toISOString() })));
     synced += batch.length;
   }
-  const caps = { per_run_cap: lim.airtable_max_new_per_run, record_budget: recordRoom, monthly_call_budget: callRoom * 10 };
+  const caps = { per_run_cap: perRun, record_budget: recordRoom, monthly_call_budget: callRoom * 10 };
   const result = {
-    synced, pending_candidates: pending.length, left_for_next_run: pending.length - synced,
+    synced, reconciled, pending_candidates: pending.length, left_for_next_run: pending.length - synced,
     held_by: take.length < pending.length ? Object.keys(caps).find((k) => caps[k] === take.length) : null,
     records_used_estimate: recordsUsed + synced, record_budget: at.record_budget, error,
   };

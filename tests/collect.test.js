@@ -134,6 +134,7 @@ function airtableSetup(name, { collect = {}, budgets = {}, failArticles = () => 
   });
   const cfg = withCollect(cfgFor(dir, { token: 'patTEST', baseId: 'appFREE', throttleMs: 0 }), collect, budgets);
   const run = (h = 0) => quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: new Date(NOW.getTime() + h * 3600000) }));
+  Object.assign(at, { cfg, fetchImpl });
   return { dir, at, run };
 }
 
@@ -176,10 +177,10 @@ test('COLLECT + AIRTABLE: only editorial candidates are mirrored, capped per run
     assert.equal(f.verification_status, 'unverified');
     assert.ok(!('candidate_note' in f) && !('airtable_synced_at' in f), 'local-only fields stay local');
   }
-  // 1 Sources read + 1 Articles upsert. The Run Log stays local.
-  assert.deepEqual(at.requests.map((q) => `${q.method} ${q.table}`), ['GET Sources', 'PATCH Articles']);
+  // 1 Sources read + 1 one-time reconcile read + 1 Articles upsert. The Run Log stays local.
+  assert.deepEqual(at.requests.map((q) => `${q.method} ${q.table}`), ['GET Sources', 'GET Articles', 'PATCH Articles']);
   assert.ok(!at.tables['Run Log']);
-  assert.equal(r.airtable.calls_this_month, 2);
+  assert.equal(r.airtable.calls_this_month, 3);
   assert.equal(articles(dir).length, 4, 'every article, candidate or not, is in the local archive');
 
   const r2 = await run(1);
@@ -188,7 +189,17 @@ test('COLLECT + AIRTABLE: only editorial candidates are mirrored, capped per run
   assert.equal(r3.airtable.synced, 0, 'synced articles are never re-sent');
   assert.equal(at.tables.Articles.length, 3);
   assert.equal(new Set(at.tables.Articles.map((x) => x.fields.article_id)).size, 3, 'no duplicates in Airtable');
-  assert.equal(r3.airtable.calls_this_month, 5);
+  assert.equal(r3.airtable.calls_this_month, 6, 'reconcile read happens once, not every run');
+});
+
+test('COLLECT + AIRTABLE: --max-sync lowers (never raises) the per-run cap', async () => {
+  const { at, run } = airtableSetup('maxsync');
+  const r = await quiet(() => runWorkflow('collect', { cfg: at.cfg, fetchImpl: at.fetchImpl, now: NOW, maxSync: 1 }));
+  assert.equal(r.airtable.synced, 1);
+  assert.equal(r.airtable.held_by, 'per_run_cap');
+  const r2 = await quiet(() => runWorkflow('collect', { cfg: at.cfg, fetchImpl: at.fetchImpl, now: NOW, maxSync: 99 }));
+  assert.equal(r2.airtable.synced, 2, 'config cap (15) still applies; only 2 left');
+  void run;
 });
 
 test('COLLECT + AIRTABLE: the record budget counts every table and stops new rows before the Free limit', async () => {
@@ -223,6 +234,65 @@ test('COLLECT + AIRTABLE: a failed sync loses nothing and is retried next run wi
   const r2 = await run(1);
   assert.equal(r2.airtable.synced, 3);
   assert.equal(at.tables.Articles.length, 3);
+});
+
+test('RESTART: a fresh machine with no local state reconciles with Airtable first and re-sends nothing', async () => {
+  const first = airtableSetup('restart-a');
+  await first.run();
+  const before = first.at.tables.Articles.length;
+  assert.equal(before, 3);
+
+  // New container: same Airtable base, empty data/ (no archive, no sync state, no usage ledger).
+  const dir2 = tmp('restart-b');
+  const cfg2 = withCollect(cfgFor(dir2, { token: 'patTEST', baseId: 'appFREE', throttleMs: 0 }), {});
+  first.at.requests.length = 0;
+  const { fetchImpl } = feeds((url, opts) => first.at.handle(url, opts));
+  const r = await quiet(() => runWorkflow('collect', { cfg: cfg2, fetchImpl, now: new Date(NOW.getTime() + 3600000) }));
+  assert.equal(r.ok, true, r.error);
+  assert.deepEqual(r.airtable.reconciled, { airtable_articles: 3, marked_synced_locally: 3 });
+  assert.equal(r.airtable.synced, 0);
+  assert.deepEqual(first.at.requests.map((q) => `${q.method} ${q.table}`), ['GET Sources', 'GET Articles'], 'read before any write, and no write needed');
+  assert.equal(first.at.tables.Articles.length, before, 'no duplicates after a restart');
+  assert.ok(articles(dir2).filter((a) => a.editorial_candidate).every((a) => a.airtable_synced_at));
+  assert.equal(JSON.parse(fs.readFileSync(path.join(dir2, 'airtable_sync_state.json'), 'utf8')).base_id, 'appFREE');
+});
+
+test('RESTART: if the reconcile read fails, nothing is written and the next run recovers', async () => {
+  const dir = tmp('reconcile-fail');
+  const at = makeFakeAirtable('appFREE');
+  at.tables.Sources = SOURCES.map((s, i) => ({ id: `recS${i}`, fields: encode('Sources', s) }));
+  // Airtable already holds one of today's candidates (synced from another machine).
+  const id = require('../src/steps/collect').articleId('https://vendor.example/news/x9');
+  at.tables.Articles = [{ id: 'recA1', fields: { article_id: id, title: 'Vendor ships Model X-9 to all API customers' } }];
+  let down = true;
+  const { fetchImpl } = feeds((url, opts) => {
+    if (down && String(url).includes('/Articles') && (opts?.method || 'GET') === 'GET') return { status: 500, ok: false, json: async () => ({ error: 'SERVER_ERROR' }) };
+    return at.handle(url, opts);
+  });
+  const cfg = withCollect(cfgFor(dir, { token: 'patTEST', baseId: 'appFREE', throttleMs: 0 }), {});
+  const r = await quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: NOW }));
+  assert.equal(r.ok, true);
+  assert.equal(r.airtable.reconciled, false);
+  assert.match(r.airtable.error, /500/);
+  assert.equal(at.requests.filter((q) => q.method !== 'GET').length, 0, 'no writes after a failed reconcile');
+  assert.ok(!fs.existsSync(path.join(dir, 'airtable_sync_state.json')), 'state only saved after a successful reconcile');
+  assert.equal(articles(dir).filter((a) => a.editorial_candidate).length, 3, 'candidates kept locally');
+
+  down = false;
+  const r2 = await quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: new Date(NOW.getTime() + 3600000) }));
+  assert.deepEqual(r2.airtable.reconciled, { airtable_articles: 1, marked_synced_locally: 1 });
+  assert.equal(r2.airtable.synced, 2, 'only the two Airtable did not have');
+  assert.equal(at.tables.Articles.length, 3);
+  assert.equal(new Set(at.tables.Articles.map((x) => x.fields.article_id)).size, 3);
+});
+
+test('RESTART: pointing at a different base triggers a fresh reconcile', async () => {
+  const { dir, run } = airtableSetup('base-switch');
+  await run();
+  fs.writeFileSync(path.join(dir, 'airtable_sync_state.json'), JSON.stringify({ base_id: 'appOLD' }));
+  const r = await run(1);
+  assert.deepEqual(r.airtable.reconciled, { airtable_articles: 3, marked_synced_locally: 0 });
+  assert.equal(r.airtable.synced, 0);
 });
 
 test('AIRTABLE: the Free-plan monthly call limit fails fast instead of retrying', async () => {

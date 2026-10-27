@@ -45,12 +45,13 @@ class AirtableStore {
     throw new Error('Airtable rate limit: gave up after 4 attempts');
     function t(u) { return u.split('/v0/')[1]?.split('?')[0]; }
   }
-  async all(table, formula) {
+  async all(table, formula, fields) {
     const rows = [];
     let offset;
     do {
       const qs = new URLSearchParams({ pageSize: '100' });
       if (formula) qs.set('filterByFormula', formula);
+      (fields || []).forEach((f) => qs.append('fields[]', f)); // smaller responses; still 1 call per 100 rows
       if (offset) qs.set('offset', offset);
       const j = await this.req('GET', this.url(table, `?${qs}`));
       j.records.forEach((r) => rows.push(decode(table, r.fields)));
@@ -84,6 +85,7 @@ function makeStore(cfg, fetchImpl) {
     },
     upsertStories: (rows) => s.upsert('Stories', rows),
     upsertArticles: (rows) => s.upsert('Articles', rows),
+    async listArticleIds() { return (await s.all('Articles', undefined, ['article_id'])).map((r) => r.article_id).filter(Boolean); },
     saveScores: (rows) => s.upsert('Scores', rows),
     saveResearch: (rows) => s.upsert('Research', rows),
     async getResearch(ids) { return (await s.all('Research')).filter((r) => ids.includes(r.story_id)); },

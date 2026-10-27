@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Usage:
-//   node src/cli.js collect [--days 3]        # RSS-only: fetch public feeds, no Claude, no paid calls
+//   node src/cli.js collect [--days 3] [--max-sync 10]  # RSS-only; no Claude, no paid calls
 //   node src/cli.js daily                     # scout today's stories
 //   node src/cli.js weekly [--date 2026-10-18] [--force] [--new-beehiiv-draft]
 //   node src/cli.js analytics                 # pull stats for sent issues
@@ -27,7 +27,7 @@ async function main() {
   if (cmd === 'doctor') return doctor();
   if (cmd === 'airtable-check') return airtableCheck();
 
-  let opts = { issueDate: opt('date'), force: flag('force'), newBeehiivDraft: flag('new-beehiiv-draft'), lookbackDays: opt('days') ? Number(opt('days')) : undefined };
+  let opts = { issueDate: opt('date'), force: flag('force'), newBeehiivDraft: flag('new-beehiiv-draft'), lookbackDays: opt('days') ? Number(opt('days')) : undefined, maxSync: opt('max-sync') !== undefined ? Number(opt('max-sync')) : undefined };
   if (flag('mock')) opts = { ...opts, ...require('../tests/mocks/mockEnv').mockOptions() };
   const result = await runWorkflow(cmd, opts);
   console.log(JSON.stringify(result, null, 2));

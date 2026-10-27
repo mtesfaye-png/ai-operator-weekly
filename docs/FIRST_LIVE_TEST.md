@@ -33,7 +33,7 @@ You need Node.js 20 or newer. Run these from the unzipped `ai-operator-weekly/` 
 
 ```bash
 cd ai-operator-weekly
-npm test                      # offline, free; expect "# pass 67" and "# fail 0"
+npm test                      # offline, free; expect "# pass 71" and "# fail 0"
 
 # 1. Make sure nothing else is connected in this shell
 unset AIRTABLE_TOKEN AIRTABLE_BASE_ID BEEHIIV_API_KEY BEEHIIV_PUBLICATION_ID BEEHIIV_POST_TEMPLATE_ID SLACK_WEBHOOK_URL
