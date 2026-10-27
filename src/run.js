@@ -9,8 +9,25 @@ const { runId: newRunId } = require('./util');
 const { daily } = require('./steps/daily');
 const { weekly } = require('./steps/weekly');
 const { analytics } = require('./steps/analytics');
+const { collectRss } = require('./steps/collect');
 
-const WORKFLOWS = { daily, weekly, analytics };
+const WORKFLOWS = { daily, weekly, analytics, collect: collectRss };
+
+// Hosts that cost money. The RSS-only workflow refuses to contact them at the network layer,
+// on top of having a zero-call budget and never loading the Claude client.
+const PAID_HOSTS = ['api.anthropic.com', 'api.beehiiv.com'];
+
+function guardFetch(fetchImpl, cfg) {
+  const paid = new Set([...PAID_HOSTS, new URL(cfg.anthropic.baseUrl).hostname]);
+  const requests = {}, blocked = [];
+  const guarded = async (url, opts) => {
+    const host = new URL(url).hostname;
+    if (paid.has(host)) { blocked.push(host); throw new Error(`collect mode refuses paid host ${host}`); }
+    requests[host] = (requests[host] || 0) + 1;
+    return fetchImpl(url, opts);
+  };
+  return { guarded, report: () => ({ attempts_by_host: requests, paid_api_calls: 0, blocked_paid_attempts: blocked.length }) };
+}
 
 // AOW_MAX_USD can only LOWER the per-run cap from runtime.json (e.g. AOW_MAX_USD=1 for a first live test).
 function effectiveMaxUsd(configured) {
@@ -21,7 +38,8 @@ function effectiveMaxUsd(configured) {
 async function runWorkflow(workflow, opts = {}) {
   if (!WORKFLOWS[workflow]) throw new Error(`Unknown workflow "${workflow}". Use: ${Object.keys(WORKFLOWS).join(', ')}`);
   const cfg = opts.cfg || load();
-  const fetchImpl = opts.fetchImpl || fetch;
+  const guard = workflow === 'collect' ? guardFetch(opts.fetchImpl || fetch, cfg) : null;
+  const fetchImpl = guard ? guard.guarded : opts.fetchImpl || fetch;
   const store = makeStore(cfg, fetchImpl);
   const lim = cfg.runtime.limits[workflow] || { max_calls: 5, max_usd: 1 };
   const budget = new Budget({ maxCalls: lim.max_calls, maxUsd: effectiveMaxUsd(lim.max_usd), rates: cfg.runtime.rates_usd });
@@ -30,7 +48,8 @@ async function runWorkflow(workflow, opts = {}) {
   log.info(`Run ${runId} started (store: ${store.kind})`);
 
   try {
-    const result = await WORKFLOWS[workflow]({ cfg, fetchImpl, store, budget, log, issueDate: opts.issueDate, force: opts.force, newBeehiivDraft: opts.newBeehiivDraft, now: opts.now || new Date() });
+    const result = await WORKFLOWS[workflow]({ cfg, fetchImpl, store, budget, log, issueDate: opts.issueDate, force: opts.force, newBeehiivDraft: opts.newBeehiivDraft, runId, lookbackDays: opts.lookbackDays, now: opts.now || new Date() });
+    if (guard) result.network = guard.report();
     const status = result.status === 'blocked' ? 'warning' : 'ok';
     await log.finish(status, JSON.stringify({ ...result, gate: undefined }).slice(0, 4000), budget.calls);
     return { run_id: runId, workflow, ok: true, ...result, budget: budget.summary() };
@@ -42,4 +61,4 @@ async function runWorkflow(workflow, opts = {}) {
   }
 }
 
-module.exports = { runWorkflow, WORKFLOWS, effectiveMaxUsd };
+module.exports = { runWorkflow, WORKFLOWS, effectiveMaxUsd, PAID_HOSTS };

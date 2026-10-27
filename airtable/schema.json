@@ -42,6 +42,157 @@
       ]
     },
     {
+      "name": "Articles",
+      "description": "Raw RSS items from collect (RSS-only). Not scored, researched or verified: those fields need Claude later.",
+      "fields": [
+        {
+          "name": "article_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "title",
+          "type": "singleLineText"
+        },
+        {
+          "name": "url",
+          "type": "url"
+        },
+        {
+          "name": "normalized_url",
+          "type": "singleLineText"
+        },
+        {
+          "name": "source",
+          "type": "singleLineText"
+        },
+        {
+          "name": "source_domain",
+          "type": "singleLineText"
+        },
+        {
+          "name": "source_tier",
+          "type": "number",
+          "options": {
+            "precision": 0
+          }
+        },
+        {
+          "name": "source_category",
+          "type": "singleLineText"
+        },
+        {
+          "name": "published_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "published_date",
+          "type": "date",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            }
+          }
+        },
+        {
+          "name": "feed_excerpt",
+          "type": "multilineText"
+        },
+        {
+          "name": "first_seen_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "last_seen_at",
+          "type": "dateTime",
+          "options": {
+            "dateFormat": {
+              "name": "iso"
+            },
+            "timeFormat": {
+              "name": "24hour"
+            },
+            "timeZone": "America/New_York"
+          }
+        },
+        {
+          "name": "run_id",
+          "type": "singleLineText"
+        },
+        {
+          "name": "status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "collected"
+              },
+              {
+                "name": "duplicate"
+              }
+            ]
+          }
+        },
+        {
+          "name": "duplicate_of",
+          "type": "singleLineText"
+        },
+        {
+          "name": "duplicate_reason",
+          "type": "singleLineText"
+        },
+        {
+          "name": "claude_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "pending"
+              },
+              {
+                "name": "processed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "verification_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "unverified"
+              },
+              {
+                "name": "verified"
+              }
+            ]
+          }
+        },
+        {
+          "name": "requires_claude",
+          "type": "singleLineText"
+        }
+      ]
+    },
+    {
       "name": "Stories",
       "fields": [
         {

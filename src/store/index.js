@@ -33,8 +33,10 @@ class AirtableStore {
   async req(method, url, body) {
     for (let attempt = 0; attempt < 4; attempt++) {
       const res = await this.fetch(url, { method, headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
-      if (res.status === 429) { await sleep(30000); continue; } // Airtable asks for 30s back-off
       const json = await res.json().catch(() => ({}));
+      // Free plan monthly API cap: retrying can't help and every retry would count, so stop at once.
+      if (res.status === 429 && /BILLING_LIMIT/i.test(JSON.stringify(json))) throw new Error(`Airtable monthly API call limit reached for this workspace (${JSON.stringify(json).slice(0, 200)})`);
+      if (res.status === 429) { await sleep(30000); continue; } // Airtable asks for 30s back-off
       if (!res.ok) throw new Error(`Airtable ${method} ${t(url)} ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
       if (this.throttle) await sleep(this.throttle); // stay under Airtable's 5 requests/second
       return json;
@@ -79,6 +81,7 @@ function makeStore(cfg, fetchImpl) {
       return since ? rows.filter((r) => !r.event_date || r.event_date >= since) : rows;
     },
     upsertStories: (rows) => s.upsert('Stories', rows),
+    upsertArticles: (rows) => s.upsert('Articles', rows),
     saveScores: (rows) => s.upsert('Scores', rows),
     saveResearch: (rows) => s.upsert('Research', rows),
     async getResearch(ids) { return (await s.all('Research')).filter((r) => ids.includes(r.story_id)); },

@@ -37,6 +37,7 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 
 | Command | Does |
 |---|---|
+| `npm run collect` | RSS-only: fetch public feeds, normalize, dedupe, save to `data/articles.json`. No Claude, no paid calls. See [docs/RSS_ONLY_AND_AIRTABLE_FREE.md](docs/RSS_ONLY_AND_AIRTABLE_FREE.md) |
 | `npm run daily` | Scout today's stories |
 | `npm run weekly -- --date 2026-10-24` | Produce that week's issue (defaults to today). Re-running a week that already has a draft does nothing unless you add `--force`. A week whose beehiiv post is still being created is only re-checked. |
 | `npm run weekly -- --force` | Regenerate the issue. If a beehiiv post already exists it is left untouched and **no second draft is created**: paste `out/<date>/issue.html` into it (status `regenerated_manual_update`). |
@@ -44,7 +45,7 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `npm run analytics` | Pull stats for sent issues |
 | `npm run doctor` | Show which keys and services are configured |
 | `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 57 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions |
+| `npm test` | 62 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 

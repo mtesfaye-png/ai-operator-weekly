@@ -3,7 +3,7 @@
 
 const schema = require('../../airtable/schema.json');
 
-const KEYS = { Sources: 'domain', Stories: 'story_id', Scores: 'story_id', Research: 'story_id', Issues: 'issue_date', Performance: 'issue_id', 'Run Log': 'run_id', 'Content Ideas': 'idea', 'Pain Points': 'reader_reply' };
+const KEYS = { Sources: 'domain', Articles: 'article_id', Stories: 'story_id', Scores: 'story_id', Research: 'story_id', Issues: 'issue_date', Performance: 'issue_id', 'Run Log': 'run_id', 'Content Ideas': 'idea', 'Pain Points': 'reader_reply' };
 
 // Domain field -> how to store it.
 const CODECS = {

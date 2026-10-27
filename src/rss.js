@@ -1,5 +1,5 @@
-// Dependency-free RSS 2.0 / Atom collector. Produces seed items for the Scout:
-// { title, url, published, source, domain, tier }. Feed failures are reported, never fatal.
+// Dependency-free RSS 2.0 / Atom collector. Produces seed items for the Scout and for RSS-only runs:
+// { title, url, published, excerpt, source, domain, tier, category }. Feed failures are reported, never fatal.
 
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", nbsp: ' ' };
 const decode = (s) => String(s || '')
@@ -18,29 +18,38 @@ function parseFeed(xml) {
     if (!link) { const m = b.match(/<link[^>]*href=["']([^"']+)["'][^>]*>/i); link = m ? m[1] : ''; }
     const date = decode(tag(b, 'pubDate') || tag(b, 'published') || tag(b, 'updated') || tag(b, 'dc:date'));
     const published = date && !Number.isNaN(Date.parse(date)) ? new Date(date).toISOString() : null;
-    items.push({ title: decode(tag(b, 'title')), url: link.trim(), published });
+    // Publisher's own teaser text, unverified. Capped so a full-content feed can't bloat records.
+    const excerpt = decode(tag(b, 'description') || tag(b, 'summary') || tag(b, 'content')).slice(0, 500);
+    items.push({ title: decode(tag(b, 'title')), url: link.trim(), published, excerpt });
   }
   return items.filter((i) => i.title && /^https?:\/\//.test(i.url));
 }
 
 async function collect(sources, { fetchImpl, lookbackDays, maxItems, now = new Date() }) {
   const cutoff = new Date(now.getTime() - lookbackDays * 86400000);
-  const items = [], failures = [];
+  const items = [], failures = [], stats = [];
   await Promise.all(sources.filter((s) => s.rss_url).map(async (s) => {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15000);
     try {
       const res = await fetchImpl(s.rss_url, { headers: { 'User-Agent': 'AIOperatorWeekly/1.0 (+newsletter research)' }, signal: ctrl.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      for (const it of parseFeed(await res.text())) {
+      const parsed = parseFeed(await res.text());
+      let inWindow = 0;
+      for (const it of parsed) {
         // Items with no date are kept; the Scout must establish the event date itself.
-        if (!it.published || new Date(it.published) >= cutoff) items.push({ ...it, source: s.name, domain: s.domain, tier: s.tier });
+        if (!it.published || new Date(it.published) >= cutoff) { inWindow++; items.push({ ...it, source: s.name, domain: s.domain, tier: s.tier, category: s.category }); }
       }
-    } catch (e) { failures.push({ source: s.name, url: s.rss_url, error: e.name === 'AbortError' ? 'timeout' : e.message }); }
+      stats.push({ source: s.name, url: s.rss_url, ok: true, items_in_feed: parsed.length, items_in_window: inWindow });
+    } catch (e) {
+      const error = e.name === 'AbortError' ? 'timeout' : [e.message, e.cause?.code || e.cause?.message].filter(Boolean).join(': ');
+      failures.push({ source: s.name, url: s.rss_url, error });
+      stats.push({ source: s.name, url: s.rss_url, ok: false, error });
+    }
     finally { clearTimeout(timer); }
   }));
   items.sort((a, b) => (a.tier - b.tier) || String(b.published).localeCompare(String(a.published)));
-  return { items: items.slice(0, maxItems), failures };
+  return { items: items.slice(0, maxItems), failures, stats };
 }
 
 module.exports = { collect, parseFeed };
