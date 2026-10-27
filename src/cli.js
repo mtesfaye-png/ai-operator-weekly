@@ -5,6 +5,7 @@
 //   node src/cli.js weekly [--date 2026-10-18] [--force] [--new-beehiiv-draft]
 //   node src/cli.js analytics                 # pull stats for sent issues
 //   node src/cli.js doctor                    # check configuration (no paid calls)
+//   node src/cli.js airtable-check            # read back synced Articles (1 Airtable call per 100 rows)
 //   add --mock to any workflow to run against simulated APIs (no keys, no cost)
 // Exit codes: 0 ok, 2 issue blocked by the quality gate, 1 error.
 
@@ -20,10 +21,11 @@ const opt = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? arg
 
 async function main() {
   if (!cmd || flag('help')) {
-    console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 10).join('\n').replace(/^\/\/ ?/gm, ''));
+    console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 11).join('\n').replace(/^\/\/ ?/gm, ''));
     return 0;
   }
   if (cmd === 'doctor') return doctor();
+  if (cmd === 'airtable-check') return airtableCheck();
 
   let opts = { issueDate: opt('date'), force: flag('force'), newBeehiivDraft: flag('new-beehiiv-draft'), lookbackDays: opt('days') ? Number(opt('days')) : undefined };
   if (flag('mock')) opts = { ...opts, ...require('../tests/mocks/mockEnv').mockOptions() };
@@ -50,8 +52,31 @@ function doctor() {
   console.log(`Budget caps (app-side estimates, not a provider limit): daily $${effectiveMaxUsd(lim.daily.max_usd)} / ${lim.daily.max_calls} calls, weekly $${effectiveMaxUsd(lim.weekly.max_usd)} / ${lim.weekly.max_calls} calls${process.env.AOW_MAX_USD ? ' (lowered by AOW_MAX_USD)' : ''}`);
   console.log('collect (RSS-only) will contact: public RSS feeds only (+ Airtable if configured). No Anthropic, no beehiiv.');
   console.log(`Daily run will contact: Anthropic API${cfg.anthropic.apiKey ? '' : ' (no key: will fail)'}, public RSS feeds (no account)${cfg.airtable.token && cfg.airtable.baseId ? ', Airtable' : ''}${cfg.alerts.slackWebhook ? ', Slack' : ''}. beehiiv is not used by daily.`);
+  if (cfg.airtable.token) console.log(`Airtable API calls this month (this app, local count): ${require('./store/usage').usedThisMonth(cfg.dataDir)} / budget ${cfg.runtime.airtable.monthly_call_budget} (Free plan: 1,000 per workspace)`);
   console.log(`Data: ${cfg.airtable.token ? 'Airtable' : path.relative(process.cwd(), cfg.dataDir) || cfg.dataDir} · Exports: ${cfg.outDir}`);
   return cfg.anthropic.apiKey ? 0 : 1;
+}
+
+// Read back what collect mirrored, filtered the way an editor would view it. Read-only.
+async function airtableCheck() {
+  const cfg = load();
+  if (!cfg.airtable.token || !cfg.airtable.baseId) { console.log('Airtable is not configured (AIRTABLE_TOKEN + AIRTABLE_BASE_ID in .env).'); return 1; }
+  const { AirtableStore, LocalStore } = require('./store');
+  const usage = require('./store/usage');
+  const at = new AirtableStore(cfg.airtable, fetch);
+  try {
+    const rows = await at.all('Articles');
+    const local = (await new LocalStore(cfg.dataDir).all('Articles')).filter((a) => a.airtable_synced_at);
+    const missing = local.filter((a) => !rows.some((r) => r.article_id === a.article_id));
+    const dupes = rows.length - new Set(rows.map((r) => r.article_id)).size;
+    const by = (k) => rows.reduce((m, r) => ({ ...m, [r[k]]: (m[r[k]] || 0) + 1 }), {});
+    console.log(JSON.stringify({
+      airtable_articles: rows.length, local_marked_synced: local.length, missing_in_airtable: missing.length, duplicate_article_ids: dupes,
+      by_signal_type: by('signal_type'), by_ranking_status: by('ranking_status'), by_verification_status: by('verification_status'),
+      sample: rows.slice(0, 5).map((r) => ({ title: r.title, source: r.source, published_date: r.published_date, url: r.url })),
+    }, null, 2));
+    return missing.length || dupes ? 1 : 0;
+  } finally { console.log(`Airtable API calls used: ${at.calls} (this month: ${usage.addCalls(cfg.dataDir, at.calls)})`); }
 }
 
 main().then((code) => process.exit(code)).catch((e) => { console.error(e); process.exit(1); });

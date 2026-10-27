@@ -43,7 +43,7 @@
     },
     {
       "name": "Articles",
-      "description": "Raw RSS items from collect (RSS-only). Not scored, researched or verified: those fields need Claude later.",
+      "description": "Editorial candidates from RSS-only collect (tier 1-2, on-topic, not duplicates). Full raw archive stays in data/articles.json. Ranking, research and fact-check are pending until Claude processes them.",
       "fields": [
         {
           "name": "article_id",
@@ -79,6 +79,51 @@
         {
           "name": "source_category",
           "type": "singleLineText"
+        },
+        {
+          "name": "signal_type",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "primary_source"
+              },
+              {
+                "name": "news_reporting"
+              },
+              {
+                "name": "discovery_unverified"
+              },
+              {
+                "name": "community_unverified"
+              }
+            ]
+          }
+        },
+        {
+          "name": "topic_check",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "ai_feed"
+              },
+              {
+                "name": "keyword_match"
+              },
+              {
+                "name": "off_topic_flagged"
+              }
+            ]
+          }
+        },
+        {
+          "name": "editorial_candidate",
+          "type": "checkbox",
+          "options": {
+            "icon": "star",
+            "color": "yellowBright"
+          }
         },
         {
           "name": "published_at",
@@ -168,6 +213,48 @@
               },
               {
                 "name": "processed"
+              }
+            ]
+          }
+        },
+        {
+          "name": "ranking_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "pending_claude"
+              },
+              {
+                "name": "done"
+              }
+            ]
+          }
+        },
+        {
+          "name": "research_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "pending_claude"
+              },
+              {
+                "name": "done"
+              }
+            ]
+          }
+        },
+        {
+          "name": "fact_check_status",
+          "type": "singleSelect",
+          "options": {
+            "choices": [
+              {
+                "name": "pending_claude"
+              },
+              {
+                "name": "done"
               }
             ]
           }

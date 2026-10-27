@@ -2,7 +2,7 @@
 // runs one workflow, writes the Run Log record, and alerts on any crash.
 
 const { load } = require('./config');
-const { makeStore } = require('./store');
+const { makeStore, LocalStore } = require('./store');
 const { makeLogger, makeAlert } = require('./log');
 const { Budget } = require('../lib/budget');
 const { runId: newRunId } = require('./util');
@@ -41,6 +41,8 @@ async function runWorkflow(workflow, opts = {}) {
   const guard = workflow === 'collect' ? guardFetch(opts.fetchImpl || fetch, cfg) : null;
   const fetchImpl = guard ? guard.guarded : opts.fetchImpl || fetch;
   const store = makeStore(cfg, fetchImpl);
+  // collect keeps its Run Log local even with Airtable connected: saves 1 API call and 1 record per run.
+  if (workflow === 'collect') { const local = new LocalStore(cfg.dataDir); store.logRun = (row) => local.append('Run Log', row); }
   const lim = cfg.runtime.limits[workflow] || { max_calls: 5, max_usd: 1 };
   const budget = new Budget({ maxCalls: lim.max_calls, maxUsd: effectiveMaxUsd(lim.max_usd), rates: cfg.runtime.rates_usd });
   const runId = newRunId(workflow);

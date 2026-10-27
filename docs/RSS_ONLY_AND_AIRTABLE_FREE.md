@@ -59,56 +59,82 @@ Known feed issues (2026-10-27): VentureBeat answers automated clients with a Ver
 so it fails from scripts. Microsoft's `/ai/feed/` is gone (410), so the whole Official Microsoft Blog feed is used
 instead and includes some non-AI posts. Hugging Face's feed has no descriptions, so `feed_excerpt` is empty.
 
-## 2. Airtable Free
+## 2. Labels on every article
 
-### Free-plan limits that matter here
-
-Check these figures on Airtable's pricing page; they change.
-
-| Limit | Free plan | How this project stays inside it |
+| Field | Values | Meaning |
 |---|---|---|
-| API calls | 1,000 per workspace per month | A `collect` run uses ≤ 4 calls (see below), so daily runs use ≈ 120/month |
-| Records | 1,000 per base | Only new, non-duplicate articles are mirrored, at most `airtable_max_new_per_run` (20) per run. The full history stays in `data/articles.json` |
-| Rate | 5 requests/second per base | The store waits 220 ms between requests |
-| Batch size | 10 records per write | Writes go in batches of 10 via `performUpsert` (no read-before-write) |
+| `signal_type` | `primary_source` (tier 1), `news_reporting` (tier 2), `discovery_unverified` (tier 3), `community_unverified` (tier 4) | Reddit, Hacker News and newsletters are discovery signals only: never cite them, trace to the original |
+| `topic_check` | `ai_feed`, `keyword_match`, `off_topic_flagged` | Feeds in `limits.collect.mixed_topic_domains` (Microsoft, NVIDIA, GitHub Changelog) get a deterministic AI-keyword check. Off-topic items are kept but flagged |
+| `editorial_candidate` | true/false (+ local `candidate_note`) | Tier ≤ `candidate_max_tier` (2), not off-topic, not a duplicate |
+| `ranking_status`, `research_status`, `fact_check_status` | `pending_claude` | Nothing has been ranked, researched or fact-checked yet |
+| `verification_status` | `unverified` | Feed text is the publisher's own claim |
 
-Calls per `collect` run with Airtable connected:
+## 3. Airtable Free
 
-1. 1 × GET **Sources** (one page, under 100 rows)
-2. 0–2 × PATCH **Articles** (upsert, 10 per call, capped at 20 new per run)
-3. 1 × POST **Run Log**
+### What the Free plan allows
 
-Already-mirrored articles are never re-sent: `data/articles.json` remembers `airtable_synced_at`, so no read
-is needed to decide. Updating `last_seen_at` stays local. If the monthly cap is hit, Airtable answers 429 with
-`PUBLIC_API_BILLING_LIMIT_EXCEEDED`. The store stops at once instead of retrying, because retries would also count.
+Check these on Airtable's pricing page and **Workspace settings → Summary**.
 
-**Record budget:** 29 Sources plus about 30 Run Log rows per month leave room for about 900 articles. At 20 per day
-that is roughly six weeks. Either lower `airtable_max_new_per_run` to 10 in `config/runtime.json`, or delete
-old Articles rows in the Airtable UI once a month. UI deletes don't count as API calls.
+- **1,000 records per base**, counted across all tables.
+- **1,000 API calls per workspace per month.** Going over starts a one-time 30-day grace period. After that, calls
+  over the limit are blocked until the 1st of the next month.
+- **5 requests/second per base.**
+- **10 records per write.**
+- Every field type in `airtable/schema.json` is a basic type: text, number, URL, checkbox, date, single select,
+  currency, percent. Personal access tokens are available on all plans.
+- **Not confirmed:** whether Free allows creating a base through the API. If it doesn't, create an empty base by
+  hand and the setup script adds the tables to it (see step 6).
 
-### Setup (≈ 4 API calls, one time)
+### How the app stays inside it
 
-1. Sign up for or log in to Airtable on the **Free** plan. Don't start a trial: dismiss any "Try Team"
-   prompts, and don't enter payment details.
-2. Find your **workspace ID**: open the workspace on airtable.com and copy the `wsp…` part of the URL.
-3. Create a **personal access token** at https://airtable.com/create/tokens:
+- **Full archive stays local.** All articles are kept in `data/articles.json`. Only editorial candidates are
+  mirrored: at most `airtable_max_new_per_run` (15) per run, tier 1 first, newest first, from the last 7 days.
+- **Record budget.** `runtime.json → airtable.record_budget` is 900. Sources rows plus mirrored articles count
+  against it, and the app stops adding rows when it's reached. To free space, delete old Articles rows in the
+  Airtable UI (UI deletes don't cost API calls). The local estimate is conservative and won't notice the
+  deletes, so after deleting, raise the budget or reset `airtable_synced_at` locally.
+- **Call budget.** `airtable.monthly_call_budget` is 800. Every Airtable request is counted in
+  `data/airtable_usage.json`. At the budget, `collect` reads sources from `config/sources.csv`, makes no Airtable
+  calls, and keeps candidates queued locally.
+- **Calls per run.** A normal `collect` run uses 1 call (read Sources) plus 1–2 calls (upsert ≤ 15 Articles).
+  The Run Log stays local. Daily runs come to about 90 calls a month.
+- **No duplicates, no losses.** Upserts merge on `article_id`. A batch is marked synced only after Airtable accepts
+  it. A failed sync leaves articles queued locally and is retried next run. The 429 "billing limit" error stops
+  at once instead of retrying.
+- **Local state.** `data/` is the source of truth for the archive and the usage ledger. Keep it on the machine
+  that runs `collect`. A cloud session's container is temporary.
+
+### Setup, step by step (≈ 4–15 API calls, once)
+
+1. **Account.** Go to airtable.com and sign up with email, Google or Microsoft. If asked to pick a plan, choose
+   **Free**. Close any "Start a free trial of Team" prompt and never enter card details.
+2. **Workspace.** A default workspace is created for you. Open it from the Home screen and copy the
+   `wsp…` ID from the browser address bar (`airtable.com/workspaces/wspXXXXXXXX`).
+3. **Personal access token.** Open https://airtable.com/create/tokens, then **Create token**.
+   - Name: `ai-operator-weekly`
    - Scopes: `data.records:read`, `data.records:write`, `schema.bases:read`, `schema.bases:write`
-   - Access: that workspace
-   - Copy the `pat…` token. It's shown once. Never commit it or paste it into chat.
-4. Put it in `.env` in the project folder (git ignores this file):
+   - Access: **Add a base → All current and future bases in workspace "<your workspace>"**
+   - Click **Create token**, then copy the `pat…` value. It is shown once.
+   - Keep it secret: don't paste it into chat, email, screenshots or a commit.
+4. **Store it locally.** In the project folder, create or edit `.env` (it's in `.gitignore`):
    ```
    AIRTABLE_TOKEN=pat...
    AIRTABLE_WORKSPACE_ID=wsp...
    ```
-5. Preview the schema without calling Airtable: `npm run airtable:dry`.
-6. Create the base and seed Sources. This makes 1 call to create the base and 3 calls to seed:
-   ```
-   node --env-file=.env airtable/setup_airtable.js
-   ```
-   Don't create the base by hand first. The script creates **AI Operator Weekly** and prints its `app…` ID.
-7. Add `AIRTABLE_BASE_ID=app...` to `.env`. Optionally, edit the token's access down to just that base.
-8. Run `npm run doctor`, then `node src/cli.js collect`. Check the report's `airtable.synced` and the
-   **Articles** table.
+   In a Claude Code cloud session, add these as environment variables in the environment settings instead of
+   typing them into the chat. Also add `api.airtable.com` to the network allowlist.
+5. **Preview.** Run `npm run airtable:dry`. It makes no calls.
+6. **Create the tables.** Run `npm run airtable:setup` (≈ 4 calls). It prints `AIRTABLE_BASE_ID=app…`. Add that line to `.env`.
+   - If base creation is refused on Free, create an empty base named **AI Operator Weekly** in the
+     workspace, copy its `app…` ID from the URL, put `AIRTABLE_BASE_ID=app…` in `.env`, and run the same command
+     again. It adds the 10 tables to that base (≈ 15 calls). Then delete the default "Table 1".
+   - Re-running is safe: existing tables are skipped and Sources are upserted on `domain`.
+7. **Narrow the token.** Optionally, edit it so it can only access the new base.
+8. **First sync.** Run `npm run doctor`, then `node src/cli.js collect --days 7` (≈ 3 calls; up to 15 articles).
+9. **Verify.** Run `node src/cli.js airtable-check` (1 call). It should report `missing_in_airtable: 0` and
+   `duplicate_article_ids: 0`. In Airtable, open **Articles** and add views (the UI is free, no API calls):
+   - Grid view, filter `editorial_candidate` is checked and `signal_type` is `primary_source`, sorted by `published_at` descending.
+   - Group by `source`.
 
-Note: with `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` set, the Claude-based `daily`/`weekly` workflows would also
-use Airtable. They are not run until Claude API access exists.
+Note: with Airtable configured, the Claude-based `daily`/`weekly` workflows would also use Airtable. They stay off
+until Claude API access exists.

@@ -123,29 +123,106 @@ test('COLLECT: the network guard refuses paid hosts even if something tries to c
   assert.ok(!('api.anthropic.com' in r.network.attempts_by_host));
 });
 
-test('COLLECT + AIRTABLE: mirrors only new canonical articles, capped, in batches of 10, once', async () => {
-  const dir = tmp('collect-at');
+const withCollect = (cfg, over, airtable = {}) => ({ ...cfg, runtime: { ...cfg.runtime, airtable: { ...cfg.runtime.airtable, ...airtable }, limits: { ...cfg.runtime.limits, collect: { ...cfg.runtime.limits.collect, ...over } } } });
+function airtableSetup(name, { collect = {}, budgets = {}, failArticles = () => false } = {}) {
+  const dir = tmp(name);
   const at = makeFakeAirtable('appFREE');
   at.tables.Sources = SOURCES.map((s, i) => ({ id: `recS${i}`, fields: encode('Sources', s) }));
-  const { fetchImpl } = feeds((url, opts) => at.handle(url, opts));
-  const cfg = cfgFor(dir, { token: 'patTEST', baseId: 'appFREE', throttleMs: 0 });
-  cfg.runtime = { ...cfg.runtime, limits: { ...cfg.runtime.limits, collect: { ...cfg.runtime.limits.collect, airtable_max_new_per_run: 2 } } };
+  const { fetchImpl } = feeds((url, opts) => {
+    if (String(url).includes('/Articles') && opts?.method === 'PATCH' && failArticles()) return { status: 503, ok: false, json: async () => ({ error: 'SERVICE_UNAVAILABLE' }) };
+    return at.handle(url, opts);
+  });
+  const cfg = withCollect(cfgFor(dir, { token: 'patTEST', baseId: 'appFREE', throttleMs: 0 }), collect, budgets);
+  const run = (h = 0) => quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: new Date(NOW.getTime() + h * 3600000) }));
+  return { dir, at, run };
+}
 
+test('COLLECT: mixed-topic feeds get off-topic flags and community/discovery feeds stay unverified signals', async () => {
+  const dir = tmp('labels');
+  const forum = { name: 'Forum', domain: 'forum.example', tier: 4, category: 'community', rss_url: 'https://forum.example/rss', active: true };
+  const forumRss = `<rss><channel><item><title>Anyone tried the new local model?</title><link>https://forum.example/t/1</link><pubDate>Mon, 26 Oct 2026 10:00:00 GMT</pubDate></item></channel></rss>`;
+  const { fetchImpl } = feeds((url) => (url === forum.rss_url ? { ok: true, status: 200, text: async () => forumRss } : null));
+  const cfg = withCollect(cfgFor(dir), { mixed_topic_domains: ['techsite.example'] });
+  fs.writeFileSync(path.join(dir, 'sources.json'), JSON.stringify([...SOURCES, forum]));
   const r = await quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: NOW }));
-  assert.equal(r.ok, true, r.error);
-  assert.deepEqual(r.airtable, { synced: 2, skipped_over_cap: 1 });
-  assert.equal(at.tables.Articles.length, 2);
-  assert.ok(at.tables.Articles.every((x) => x.fields.status === 'collected' && x.fields.claude_status === 'pending'));
-  // 1 Sources read + 1 Articles upsert + 1 Run Log append.
-  assert.deepEqual(at.requests.map((q) => `${q.method} ${q.table}`), ['GET Sources', 'PATCH Articles', 'POST Run Log']);
-  assert.ok(at.requests.every((q) => !q.body || q.body.records.length <= 10));
+  const rows = articles(dir);
+  const get = (t) => rows.find((a) => a.title.startsWith(t));
+  assert.equal(get('Startup raises').topic_check, 'off_topic_flagged', 'no AI terms in a mixed-topic feed');
+  assert.equal(get('Startup raises').editorial_candidate, false);
+  assert.equal(get('Vendor Ships Model X-9').status, 'duplicate');
+  assert.equal(get('Vendor ships').topic_check, 'ai_feed');
+  assert.equal(get('Vendor ships').signal_type, 'primary_source');
+  const post = get('Anyone tried');
+  assert.equal(post.signal_type, 'community_unverified');
+  assert.equal(post.verification_status, 'unverified');
+  assert.equal(post.editorial_candidate, false);
+  assert.match(post.candidate_note, /discovery signal only/);
+  assert.deepEqual(r.new_by_signal_type, { primary_source: 2, news_reporting: 2, community_unverified: 1 });
+  assert.equal(r.new_editorial_candidates, 2);
+  for (const a of rows) for (const k of ['ranking_status', 'research_status', 'fact_check_status']) assert.equal(a[k], 'pending_claude');
+});
 
-  const r2 = await quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: new Date(NOW.getTime() + 3600000) }));
-  assert.deepEqual(r2.airtable, { synced: 1, skipped_over_cap: 0 }, 'the held-back article drains next run');
-  const r3 = await quiet(() => runWorkflow('collect', { cfg, fetchImpl, now: new Date(NOW.getTime() + 7200000) }));
-  assert.deepEqual(r3.airtable, { synced: 0, skipped_over_cap: 0 }, 'synced articles are never re-sent');
+test('COLLECT + AIRTABLE: only editorial candidates are mirrored, capped per run, never twice; the archive stays local', async () => {
+  const { dir, at, run } = airtableSetup('collect-at', { collect: { airtable_max_new_per_run: 2 } });
+  const r = await run();
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.airtable.synced, 2);
+  assert.equal(r.airtable.left_for_next_run, 1);
+  assert.equal(r.airtable.held_by, 'per_run_cap');
+  assert.equal(at.tables.Articles.length, 2);
+  for (const { fields: f } of at.tables.Articles) {
+    assert.equal(f.editorial_candidate, true);
+    assert.equal(f.ranking_status, 'pending_claude');
+    assert.equal(f.verification_status, 'unverified');
+    assert.ok(!('candidate_note' in f) && !('airtable_synced_at' in f), 'local-only fields stay local');
+  }
+  // 1 Sources read + 1 Articles upsert. The Run Log stays local.
+  assert.deepEqual(at.requests.map((q) => `${q.method} ${q.table}`), ['GET Sources', 'PATCH Articles']);
+  assert.ok(!at.tables['Run Log']);
+  assert.equal(r.airtable.calls_this_month, 2);
+  assert.equal(articles(dir).length, 4, 'every article, candidate or not, is in the local archive');
+
+  const r2 = await run(1);
+  assert.equal(r2.airtable.synced, 1, 'the held-back candidate drains next run');
+  const r3 = await run(2);
+  assert.equal(r3.airtable.synced, 0, 'synced articles are never re-sent');
   assert.equal(at.tables.Articles.length, 3);
-  assert.equal(at.requests.filter((q) => q.table === 'Articles').length, 2);
+  assert.equal(new Set(at.tables.Articles.map((x) => x.fields.article_id)).size, 3, 'no duplicates in Airtable');
+  assert.equal(r3.airtable.calls_this_month, 5);
+});
+
+test('COLLECT + AIRTABLE: the record budget counts every table and stops new rows before the Free limit', async () => {
+  const { at, run } = airtableSetup('budget', { budgets: { record_budget: SOURCES.length + 1 } });
+  const r = await run();
+  assert.equal(r.airtable.synced, 1);
+  assert.equal(r.airtable.held_by, 'record_budget');
+  assert.equal(r.airtable.records_used_estimate, SOURCES.length + 1);
+  assert.equal(at.tables.Articles.length, 1);
+});
+
+test('COLLECT + AIRTABLE: with the monthly call budget used up, nothing calls Airtable and articles stay local', async () => {
+  const { dir, at, run } = airtableSetup('calls', { budgets: { monthly_call_budget: 10 } });
+  require('../src/store/usage').addCalls(dir, 10, NOW);
+  const r = await run();
+  assert.equal(r.ok, true, r.error);
+  assert.equal(r.airtable.skipped, 'monthly_call_budget_reached');
+  assert.equal(at.requests.length, 0, 'no Airtable calls at all, Sources read from config');
+  assert.equal(r.new_articles, 3);
+  assert.ok(articles(dir).every((a) => !a.airtable_synced_at));
+});
+
+test('COLLECT + AIRTABLE: a failed sync loses nothing and is retried next run without duplicates', async () => {
+  let down = true;
+  const { dir, at, run } = airtableSetup('fail', { failArticles: () => down });
+  const r = await run();
+  assert.equal(r.ok, true, 'a sync failure does not fail the collection');
+  assert.equal(r.airtable.synced, 0);
+  assert.match(r.airtable.error, /503/);
+  assert.equal(articles(dir).filter((a) => a.editorial_candidate && !a.airtable_synced_at).length, 3);
+  down = false;
+  const r2 = await run(1);
+  assert.equal(r2.airtable.synced, 3);
+  assert.equal(at.tables.Articles.length, 3);
 });
 
 test('AIRTABLE: the Free-plan monthly call limit fails fast instead of retrying', async () => {

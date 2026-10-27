@@ -28,14 +28,15 @@ class LocalStore {
 
 // ---------- Airtable store ----------
 class AirtableStore {
-  constructor({ token, baseId, throttleMs = 220 }, fetchImpl) { this.token = token; this.baseId = baseId; this.fetch = fetchImpl; this.kind = 'airtable'; this.throttle = throttleMs; }
+  constructor({ token, baseId, throttleMs = 220 }, fetchImpl) { this.token = token; this.baseId = baseId; this.fetch = fetchImpl; this.kind = 'airtable'; this.throttle = throttleMs; this.calls = 0; }
   url(t, qs = '') { return `https://api.airtable.com/v0/${this.baseId}/${encodeURIComponent(t)}${qs}`; }
   async req(method, url, body) {
     for (let attempt = 0; attempt < 4; attempt++) {
+      this.calls++; // every attempt counts toward Airtable's monthly allowance
       const res = await this.fetch(url, { method, headers: { Authorization: `Bearer ${this.token}`, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
       const json = await res.json().catch(() => ({}));
       // Free plan monthly API cap: retrying can't help and every retry would count, so stop at once.
-      if (res.status === 429 && /BILLING_LIMIT/i.test(JSON.stringify(json))) throw new Error(`Airtable monthly API call limit reached for this workspace (${JSON.stringify(json).slice(0, 200)})`);
+      if (res.status === 429 && /BILLING|billing plan/i.test(JSON.stringify(json))) throw new Error(`Airtable monthly API call limit reached for this workspace (${JSON.stringify(json).slice(0, 200)})`);
       if (res.status === 429) { await sleep(30000); continue; } // Airtable asks for 30s back-off
       if (!res.ok) throw new Error(`Airtable ${method} ${t(url)} ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
       if (this.throttle) await sleep(this.throttle); // stay under Airtable's 5 requests/second
@@ -71,6 +72,7 @@ function makeStore(cfg, fetchImpl) {
   const s = cfg.airtable.token && cfg.airtable.baseId ? new AirtableStore(cfg.airtable, fetchImpl) : new LocalStore(cfg.dataDir);
   return {
     kind: s.kind,
+    apiCalls: () => s.calls || 0,
     async listSources() {
       const rows = await s.all('Sources');
       if (rows.length) return rows.filter((r) => r.active !== false).map((r) => ({ ...r, tier: Number(r.tier) }));
@@ -106,4 +108,4 @@ function seedSources(cfg) {
   }).filter((r) => r.active);
 }
 
-module.exports = { makeStore, LocalStore, AirtableStore };
+module.exports = { makeStore, LocalStore, AirtableStore, seedSources };

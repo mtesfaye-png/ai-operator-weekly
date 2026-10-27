@@ -26,7 +26,13 @@
   },
   "limits": {
     "daily": { "max_calls": 8, "max_usd": 4, "scout_max_searches": 10, "rss_lookback_days": 2, "rss_max_items": 60 },
-    "collect": { "max_calls": 0, "max_usd": 0, "lookback_days": 3, "max_items": 500, "title_dedupe_min_words": 4, "airtable_max_new_per_run": 20 },
+    "collect": {
+      "max_calls": 0, "max_usd": 0, "lookback_days": 3, "max_items": 500, "title_dedupe_min_words": 4,
+      "mixed_topic_domains": ["blogs.microsoft.com", "blogs.nvidia.com", "github.blog"],
+      "candidate_max_tier": 2,
+      "airtable_max_new_per_run": 15,
+      "airtable_sync_window_days": 7
+    },
     "weekly": { "max_calls": 50, "max_usd": 20, "research_batch_size": 3, "research_max_fetches": 12, "research_max_searches": 6, "fact_check_max_fetches": 10, "max_revisions": 1 },
     "max_output_tokens": 16000,
     "stream_max_output_tokens": 64000,
@@ -35,6 +41,12 @@
     "stream_idle_timeout_ms": 180000,
     "max_pause_turns": 4,
     "retries": 3
+  },
+  "airtable": {
+    "plan": "free",
+    "record_budget": 900,
+    "monthly_call_budget": 800,
+    "notes": "Airtable Free: 1,000 records per base (all tables) and 1,000 API calls per workspace per month. Budgets leave headroom."
   },
   "retry_base_ms": 5000,
   "tool_changes_max": 4,
