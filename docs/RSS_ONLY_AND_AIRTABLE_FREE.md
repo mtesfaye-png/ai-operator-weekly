@@ -50,9 +50,14 @@ node src/cli.js collect
 
 In a Claude Code cloud session, the environment's network policy must allow the feed hosts:
 `openai.com, deepmind.google, blog.google, blogs.microsoft.com, blogs.nvidia.com, huggingface.co,
-github.blog, techcrunch.com, www.theverge.com, venturebeat.com, importai.substack.com, www.latent.space,
+github.blog, techcrunch.com, www.theverge.com, venturebeat.com, importai.substack.com, latent.space,
 hnrss.org, www.reddit.com` (plus `api.airtable.com` for Airtable). See
-https://code.claude.com/docs/en/cloud-environments#network-access.
+https://code.claude.com/docs/en/cloud-environments#network-access. Node's built-in `fetch` only uses the
+session's proxy with `NODE_USE_ENV_PROXY=1`, so there run `NODE_USE_ENV_PROXY=1 node src/cli.js collect`.
+
+Known feed issues (2026-10-27): VentureBeat answers automated clients with a Vercel bot challenge (HTTP 429),
+so it fails from scripts. Microsoft's `/ai/feed/` is gone (410), so the whole Official Microsoft Blog feed is used
+instead and includes some non-AI posts. Hugging Face's feed has no descriptions, so `feed_excerpt` is empty.
 
 ## 2. Airtable Free
 

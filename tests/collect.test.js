@@ -155,3 +155,14 @@ test('AIRTABLE: the Free-plan monthly call limit fails fast instead of retrying'
   await assert.rejects(() => s.all('Sources'), /monthly API call limit/);
   assert.equal(n, 1);
 });
+
+test('RSS: entity-escaped and double-escaped HTML in feeds is reduced to plain text', () => {
+  const { parseFeed } = require('../src/rss');
+  const xml = `<feed><entry><title>Mixture &amp;amp; experts</title><link href="https://www.reddit.com/r/x/1"/><updated>2026-10-26T00:00:00Z</updated>
+<content type="html">&lt;!-- SC_OFF --&gt;&lt;div class=&quot;md&quot;&gt;&lt;p&gt;You&amp;#39;d &lt;strong&gt;like&lt;/strong&gt; this&lt;/p&gt;&lt;/div&gt;</content></entry></feed>`;
+  const [it] = parseFeed(xml);
+  assert.equal(it.excerpt, "You'd like this");
+  assert.equal(it.title, 'Mixture & experts');
+  const rss = `<rss><channel><item><title>T</title><link>https://blog.google/a/</link><description>&lt;img src="https://x/y.webp"&gt;Learn AI literacy</description></item></channel></rss>`;
+  assert.equal(parseFeed(rss)[0].excerpt, 'Learn AI literacy');
+});

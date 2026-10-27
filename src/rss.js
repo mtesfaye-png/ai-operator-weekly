@@ -2,10 +2,11 @@
 // { title, url, published, excerpt, source, domain, tier, category }. Feed failures are reported, never fatal.
 
 const ENT = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", '#39': "'", nbsp: ' ' };
-const decode = (s) => String(s || '')
-  .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-  .replace(/<[^>]+>/g, '')
-  .replace(/&(#\d+|#x[0-9a-f]+|\w+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : (ENT[e] ?? m))
+const entities = (s) => s.replace(/&(#\d+|#x[0-9a-f]+|\w+);/gi, (m, e) => e[0] === '#' ? String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10)) : (ENT[e] ?? m));
+const stripTags = (s) => s.replace(/<[^>]+>/g, ' ');
+// Many feeds (Reddit, blog.google) entity-escape their HTML, sometimes twice (&amp;#39;), so strip tags
+// again after decoding and decode a second time.
+const decode = (s) => entities(stripTags(entities(stripTags(String(s || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')))))
   .replace(/\s+/g, ' ').trim();
 
 const tag = (block, name) => { const m = block.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`, 'i')); return m ? m[1] : ''; };
