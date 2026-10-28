@@ -1,0 +1,198 @@
+{
+  "id": "aowRssCollect001",
+  "name": "AI Operator Weekly - RSS Collect (free)",
+  "active": false,
+  "settings": {
+    "timezone": "America/New_York",
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "executionTimeout": 900
+  },
+  "nodes": [
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000001",
+      "parameters": {},
+      "name": "Run now (manual test)",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, -120]
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000002",
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "5 7 * * *"
+            }
+          ]
+        }
+      },
+      "name": "Every day 7:05am ET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 80]
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000003",
+      "parameters": {
+        "method": "POST",
+        "url": "http://aow:8787/run/collect",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{ \"days\": 3, \"wait\": true }",
+        "options": {
+          "timeout": 600000,
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Collect RSS (free, no Claude)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "aowTriggerToken1",
+          "name": "AOW Trigger Token"
+        }
+      },
+      "onError": "continueErrorOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000004",
+      "parameters": {
+        "jsCode": "// Turns the collector's answer into one execution-log row. outcome: ok | skipped | warning | failed.\nconst r = $input.first().json;\nconst body = r.body || {};\nconst result = body.result || {};\nconst at = result.airtable || {};\nconst failedFeeds = ((result.feeds || {}).failed || []).map((f) => `${f.source} (${f.error})`);\nconst workingFeeds = ((result.feeds || {}).working || []).length;\nlet outcome = 'ok';\nlet message = 'Collection finished.';\nif (r.statusCode === undefined) { outcome = 'failed'; message = `Collector unreachable: ${(r.error && (r.error.message || r.error)) || 'no response'}. Is Docker Desktop running and the aow container up?`; }\nelse if (r.statusCode === 409 || result.status === 'skipped') { outcome = 'skipped'; message = 'Another collection run was already in progress, so this one did nothing.'; }\nelse if (r.statusCode === 401) { outcome = 'failed'; message = 'Trigger token rejected: the n8n credential \"AOW Trigger Token\" does not match AOW_TRIGGER_TOKEN.'; }\nelse if (r.statusCode !== 200) { outcome = 'failed'; message = `Collector answered HTTP ${r.statusCode}: ${body.error || 'unknown error'}`; }\nelse if (!result.ok) { outcome = 'failed'; message = `Collection failed: ${result.error || 'unknown error'}`; }\nelse if (at.error || at.reconciled === false) { outcome = 'failed'; message = `Airtable sync failed; articles stay queued locally and retry next run: ${at.error || 'reconcile failed'}`; }\nelse if (workingFeeds === 0) { outcome = 'failed'; message = 'No RSS feed could be read (network problem?).'; }\nelse if (at.skipped === 'monthly_call_budget_reached') { outcome = 'warning'; message = 'Airtable monthly call budget reached: articles are kept locally and sync resumes next month.'; }\nelse if (at.usage_warning) { outcome = 'warning'; message = at.usage_warning; }\nelse if (failedFeeds.length > 3) { outcome = 'warning'; message = `${failedFeeds.length} feeds failed: ${failedFeeds.join(', ')}`; }\nreturn [{ json: {\n  outcome,\n  message,\n  run_id: result.run_id || body.run_id || null,\n  new_articles: result.new_articles ?? null,\n  already_stored: result.already_stored ?? null,\n  new_editorial_candidates: result.new_editorial_candidates ?? null,\n  synced_to_airtable: at.synced ?? null,\n  left_for_next_run: at.left_for_next_run ?? null,\n  records_used_estimate: at.records_used_estimate ?? null,\n  airtable_calls_this_month: at.calls_this_month ?? null,\n  failed_feeds: failedFeeds,\n  paid_api_calls: result.network ? result.network.paid_api_calls : 0,\n} }];"
+      },
+      "name": "Summarize run",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 0]
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000005",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "ok",
+              "operator": { "type": "string", "operation": "notEquals" }
+            },
+            {
+              "id": "c2",
+              "leftValue": "={{ $json.outcome }}",
+              "rightValue": "skipped",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Needs attention?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [780, 0]
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000006",
+      "parameters": {
+        "method": "POST",
+        "url": "https://REPLACE-WITH-YOUR-FREE-SLACK-OR-DISCORD-WEBHOOK",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: 'AI Operator Weekly RSS collect ' + $json.outcome + ': ' + $json.message, content: 'AI Operator Weekly RSS collect ' + $json.outcome + ': ' + $json.message }) }}",
+        "options": { "timeout": 15000 }
+      },
+      "name": "Alert webhook (optional)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, -100],
+      "disabled": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000007",
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c3",
+              "leftValue": "={{ $('Summarize run').item.json.outcome }}",
+              "rightValue": "failed",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Failed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1300, -100]
+    },
+    {
+      "id": "6f1d1c52-0b7e-4b9e-9d0a-000000000008",
+      "parameters": {
+        "errorMessage": "={{ $('Summarize run').item.json.message }}"
+      },
+      "name": "Mark execution as failed",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [1560, -200]
+    }
+  ],
+  "connections": {
+    "Run now (manual test)": {
+      "main": [[{ "node": "Collect RSS (free, no Claude)", "type": "main", "index": 0 }]]
+    },
+    "Every day 7:05am ET": {
+      "main": [[{ "node": "Collect RSS (free, no Claude)", "type": "main", "index": 0 }]]
+    },
+    "Collect RSS (free, no Claude)": {
+      "main": [
+        [{ "node": "Summarize run", "type": "main", "index": 0 }],
+        [{ "node": "Summarize run", "type": "main", "index": 0 }]
+      ]
+    },
+    "Summarize run": {
+      "main": [[{ "node": "Needs attention?", "type": "main", "index": 0 }]]
+    },
+    "Needs attention?": {
+      "main": [[{ "node": "Alert webhook (optional)", "type": "main", "index": 0 }], []]
+    },
+    "Alert webhook (optional)": {
+      "main": [[{ "node": "Failed?", "type": "main", "index": 0 }]]
+    },
+    "Failed?": {
+      "main": [[{ "node": "Mark execution as failed", "type": "main", "index": 0 }], []]
+    }
+  }
+}

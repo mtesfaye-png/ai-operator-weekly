@@ -10,6 +10,7 @@ const { daily } = require('./steps/daily');
 const { weekly } = require('./steps/weekly');
 const { analytics } = require('./steps/analytics');
 const { collectRss } = require('./steps/collect');
+const lock = require('./store/lock');
 
 const WORKFLOWS = { daily, weekly, analytics, collect: collectRss };
 
@@ -38,6 +39,16 @@ function effectiveMaxUsd(configured) {
 async function runWorkflow(workflow, opts = {}) {
   if (!WORKFLOWS[workflow]) throw new Error(`Unknown workflow "${workflow}". Use: ${Object.keys(WORKFLOWS).join(', ')}`);
   const cfg = opts.cfg || load();
+  // Two collect runs at once could both see an article as unsynced; the second one waits for tomorrow.
+  if (workflow === 'collect') {
+    const release = lock.acquire(cfg.dataDir, 'collect');
+    if (!release) return { workflow, ok: true, status: 'skipped', reason: 'another collect run is in progress' };
+    try { return await runOnce(workflow, opts, cfg); } finally { release(); }
+  }
+  return runOnce(workflow, opts, cfg);
+}
+
+async function runOnce(workflow, opts, cfg) {
   const guard = workflow === 'collect' ? guardFetch(opts.fetchImpl || fetch, cfg) : null;
   const fetchImpl = guard ? guard.guarded : opts.fetchImpl || fetch;
   const store = makeStore(cfg, fetchImpl);

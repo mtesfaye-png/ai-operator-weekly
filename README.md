@@ -13,6 +13,10 @@ Daily 10:00am    Analytics: once an issue is sent, pull stats → Performance �
 
 No npm dependencies. Node 20+ only.
 
+**Current stage (free, $0):** RSS-only collection into the Airtable Free base, scheduled by n8n Community Edition
+on a Windows PC with Docker Desktop. See [docs/WINDOWS_LOCAL_SETUP.md](docs/WINDOWS_LOCAL_SETUP.md). The paid
+Claude pipelines below stay off until Claude API access is approved.
+
 ## Go live in five steps
 
 1. **Configure.** `cp .env.example .env` and fill in at least `ANTHROPIC_API_KEY`. Run `npm run doctor`.
@@ -25,8 +29,9 @@ No npm dependencies. Node 20+ only.
    manual paste and Slack tells you where.
 4. **First live run by hand:** `npm run daily` (about $0.10–0.50), check `data/` or Airtable, then
    `npm run weekly` (about $3–8, capped at $20). Open `out/<date>/preview.html` and the beehiiv draft.
-5. **Schedule it.** Deploy the trigger server (`npm start`, or the Dockerfile) with `AOW_TRIGGER_TOKEN` set.
-   In n8n, import the three files in `n8n/`, create a *Header Auth* credential named **AOW Trigger Token**
+5. **Schedule it.** Deploy the trigger server (`npm start`, or the Dockerfile) with `AOW_TRIGGER_TOKEN` set and
+   `AOW_SERVER_WORKFLOWS=collect,daily,weekly,analytics` (the server only allows `collect` unless told otherwise).
+   In n8n, import `daily-scout.json`, `weekly-production.json` and `analytics.json` from `n8n/`, create a *Header Auth* credential named **AOW Trigger Token**
    (`Authorization: Bearer <token>`), replace `https://YOUR-AOW-SERVER` and the Slack URL, then activate.
    No n8n? Use cron: `45 6 * * * cd /app && node src/cli.js daily` (and the same for weekly/analytics).
 
@@ -45,8 +50,9 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `npm run analytics` | Pull stats for sent issues |
 | `npm run doctor` | Show which keys and services are configured |
 | `node src/cli.js airtable-check` | Read back the Articles mirrored to Airtable and check for missing or duplicate rows (1 call per 100 rows) |
-| `npm start` | Trigger server for n8n: `POST /run/{daily,weekly,analytics}`, `GET /runs/:id`, `GET /health` |
-| `npm test` | 71 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection |
+| `node src/cli.js airtable-status` | Real record count across all tables and this month's API calls vs the Free limits; marks rows you deleted in Airtable as archived so they free up the budget (≈10 calls) |
+| `npm start` | Trigger server for n8n: `POST /run/{collect,daily,weekly,analytics}` (only those in `AOW_SERVER_WORKFLOWS`, default `collect`; collect accepts `{"days":3,"max_sync":10,"wait":true}`), `GET /runs/:id`, `GET /health`. Listens on 127.0.0.1 unless `HOST` is set |
+| `npm test` | 80 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection, Stage 3 trigger server / lock / repeated-run / archive / deployment checks |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 

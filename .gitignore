@@ -4,3 +4,4 @@ data/
 out/
 data-mock/
 out-mock/
+deploy/windows/backups/
