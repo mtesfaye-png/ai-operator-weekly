@@ -9,14 +9,17 @@
 # It never creates an Airtable base and never contacts Anthropic or beehiiv.
 param([switch]$SkipImport)
 
-$ErrorActionPreference = 'Stop'
+# 'Continue', not 'Stop': Windows PowerShell 5.1 turns any stderr text from docker into a fatal error under 'Stop'.
+# Failures are caught by exit codes (Check) and explicit throws instead.
+$ErrorActionPreference = 'Continue'
 Set-Location $PSScriptRoot
 function Step($m) { Write-Host "`n== $m" -ForegroundColor Cyan }
 function Check($what) { if ($LASTEXITCODE -ne 0) { throw "$what failed (exit code $LASTEXITCODE). See the messages above." } }
 
 Step 'Checking Docker Desktop'
-docker version --format '{{.Server.Version}}' *> $null
-if ($LASTEXITCODE -ne 0) { throw 'Docker Desktop is not running. Start it from the Start menu, wait until it says "Engine running", then run this script again.' }
+if (-not (Get-Command docker -ErrorAction SilentlyContinue)) { throw 'Docker Desktop is not installed (no "docker" command). Install it, restart PowerShell, then run this script again.' }
+docker info *> $null
+if ($LASTEXITCODE -ne 0) { throw 'Docker Desktop is installed but its engine is not ready. Open Docker Desktop and wait until the bottom-left says "Engine running" (if it never does: Docker Desktop > Troubleshoot (bug icon) > Restart, or run "wsl --update" and restart Windows), then run this script again.' }
 
 $envFile = Join-Path $PSScriptRoot '.env'
 if (-not (Test-Path $envFile)) {
@@ -52,7 +55,7 @@ Step 'Waiting for the collector and n8n to answer on localhost'
 $deadline = (Get-Date).AddMinutes(3)
 foreach ($url in 'http://127.0.0.1:8787/health', 'http://127.0.0.1:5678/healthz') {
   while ($true) {
-    try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 $url *> $null; Write-Host "OK  $url"; break }
+    try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 -ErrorAction Stop $url *> $null; Write-Host "OK  $url"; break }
     catch { if ((Get-Date) -gt $deadline) { throw "$url did not answer. Run: docker compose logs" }; Start-Sleep -Seconds 3 }
   }
 }

@@ -3,12 +3,13 @@
 #   n8n-workflows.json   your n8n workflows (re-importable)
 #   n8n-home\            n8n's database and encryption key (contains your saved credentials: keep it private)
 # Run it with the containers up:  powershell -ExecutionPolicy Bypass -File .\backup.ps1
-$ErrorActionPreference = 'Stop'
+# 'Continue', not 'Stop': Windows PowerShell 5.1 turns stderr text from docker into a fatal error under 'Stop'.
+$ErrorActionPreference = 'Continue'
 Set-Location $PSScriptRoot
 function Check($what) { if ($LASTEXITCODE -ne 0) { throw "$what failed (exit code $LASTEXITCODE). Are the containers running? (docker compose ps)" } }
 
 $dest = Join-Path $PSScriptRoot ('backups\' + (Get-Date -Format 'yyyy-MM-dd_HHmm'))
-New-Item -ItemType Directory -Force $dest | Out-Null
+New-Item -ItemType Directory -Force -ErrorAction Stop $dest | Out-Null
 
 docker compose cp aow:/data "$dest\aow-data"; Check 'Copying the collector data'
 docker compose exec -T n8n n8n export:workflow --all --output=/tmp/workflows.json; Check 'Exporting n8n workflows'
