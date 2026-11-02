@@ -69,7 +69,7 @@ https://git-scm.com/download/win → run the installer → keep every default.
 Open **Windows PowerShell** (Start menu → type "PowerShell") and run:
 ```powershell
 cd $HOME\Documents
-git clone https://github.com/mtesfaye-png/ai-operator-weekly.git
+git clone https://github.com/MatchappAI/Operator-Weekly-AI.git ai-operator-weekly
 cd ai-operator-weekly
 git checkout stage3-n8n-rss-local     # skip this line once the branch is merged into main
 cd deploy\windows
