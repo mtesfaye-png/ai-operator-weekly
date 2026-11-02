@@ -14,7 +14,8 @@ Daily 10:00am    Analytics: once an issue is sent, pull stats â†’ Performance â†
 No npm dependencies. Node 20+ only.
 
 **Current stage (free, $0):** RSS-only collection into the Airtable Free base, scheduled by n8n Community Edition
-on a Windows PC with Docker Desktop. See [docs/WINDOWS_LOCAL_SETUP.md](docs/WINDOWS_LOCAL_SETUP.md). The paid
+on a Windows PC with Docker Desktop. See [docs/WINDOWS_LOCAL_SETUP.md](docs/WINDOWS_LOCAL_SETUP.md), and
+[docs/RUNBOOK.md](docs/RUNBOOK.md) for every remaining step to the end of the project. The paid
 Claude pipelines below stay off until Claude API access is approved.
 
 ## Go live in five steps

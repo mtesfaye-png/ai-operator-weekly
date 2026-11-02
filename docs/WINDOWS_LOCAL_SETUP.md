@@ -1,5 +1,7 @@
 # Stage 3: daily RSS collection with n8n on your Windows PC ($0)
 
+Following along step by step? Use [RUNBOOK.md](RUNBOOK.md): it covers this setup and every phase after it.
+
 n8n runs on your own PC and starts the free RSS collection every morning. New articles go into the existing
 Airtable base (`appYiy5hPq7BNDosa`). Claude Code and the cloud container aren't involved, and nothing paid is used.
 
