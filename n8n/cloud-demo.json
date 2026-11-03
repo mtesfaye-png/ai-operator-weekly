@@ -8,7 +8,7 @@
     "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "all",
     "saveManualExecutions": true,
-    "executionTimeout": 600
+    "executionTimeout": 175
   },
   "nodes": [
     {
@@ -17,7 +17,10 @@
       "name": "Start demo (manual)",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c002",
@@ -27,7 +30,10 @@
       "name": "Remember start time",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [220, 0]
+      "position": [
+        220,
+        0
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c003",
@@ -39,31 +45,51 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Accept", "value": "application/vnd.github+json" },
-            { "name": "X-GitHub-Api-Version", "value": "2022-11-28" }
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "{ \"ref\": \"main\", \"inputs\": { \"days\": \"3\", \"max_sync\": \"15\" } }",
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        }
       },
       "name": "Start GitHub Actions collect",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0],
+      "position": [
+        440,
+        0
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "aowGitHubToken01", "name": "GitHub Actions token" }
+        "httpHeaderAuth": {
+          "id": "aowGitHubToken01",
+          "name": "GitHub Actions token"
+        }
       },
       "onError": "continueErrorOutput"
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c004",
-      "parameters": { "amount": 20, "unit": "seconds" },
-      "name": "Wait 20 seconds",
+      "parameters": {
+        "amount": 15,
+        "unit": "seconds"
+      },
+      "name": "Wait 15 seconds",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [660, 0],
+      "position": [
+        660,
+        0
+      ],
       "webhookId": "0c1d0a52-0b7e-4b9e-9d0a-00000000cw01"
     },
     {
@@ -75,37 +101,67 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Accept", "value": "application/vnd.github+json" },
-            { "name": "X-GitHub-Api-Version", "value": "2022-11-28" }
+            {
+              "name": "Accept",
+              "value": "application/vnd.github+json"
+            },
+            {
+              "name": "X-GitHub-Api-Version",
+              "value": "2022-11-28"
+            }
           ]
         },
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        }
       },
       "name": "Check run status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 0],
+      "position": [
+        880,
+        0
+      ],
       "credentials": {
-        "httpHeaderAuth": { "id": "aowGitHubToken01", "name": "GitHub Actions token" }
+        "httpHeaderAuth": {
+          "id": "aowGitHubToken01",
+          "name": "GitHub Actions token"
+        }
       }
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c006",
       "parameters": {
-        "jsCode": "// Picks the run this execution started (created after 'Remember start time') and reports its state.\nconst started = $('Remember start time').first().json.started_at;\nconst runs = $input.first().json.workflow_runs || [];\nconst run = runs.filter((r) => r.created_at >= started).sort((a, b) => a.created_at.localeCompare(b.created_at))[0];\nconst attempt = $runIndex + 1;\nreturn [{ json: {\n  found: !!run,\n  status: run ? run.status : 'not_started_yet',\n  conclusion: run ? run.conclusion : null,\n  run_url: run ? run.html_url : null,\n  run_id: run ? run.id : null,\n  attempt,\n  gave_up: attempt >= 12 && !(run && run.status === 'completed'),\n} }];"
+        "jsCode": "// Picks the run this execution started (created after 'Remember start time') and reports its state.\nconst started = $('Remember start time').first().json.started_at;\nconst runs = $input.first().json.workflow_runs || [];\nconst run = runs.filter((r) => r.created_at >= started).sort((a, b) => a.created_at.localeCompare(b.created_at))[0];\nconst attempt = $runIndex + 1;\nreturn [{ json: {\n  found: !!run,\n  status: run ? run.status : 'not_started_yet',\n  conclusion: run ? run.conclusion : null,\n  run_url: run ? run.html_url : null,\n  run_id: run ? run.id : null,\n  attempt,\n  gave_up: attempt >= 9 && !(run && run.status === 'completed'),\n} }];"
       },
       "name": "Find our run",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 0]
+      "position": [
+        1100,
+        0
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c007",
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
-            { "id": "d1", "leftValue": "={{ $json.status }}", "rightValue": "completed", "operator": { "type": "string", "operation": "equals" } }
+            {
+              "id": "d1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -114,15 +170,32 @@
       "name": "Finished?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1320, 0]
+      "position": [
+        1320,
+        0
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c008",
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
-            { "id": "d2", "leftValue": "={{ $json.gave_up }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true", "singleValue": true } }
+            {
+              "id": "d2",
+              "leftValue": "={{ $json.gave_up }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -131,15 +204,31 @@
       "name": "Waited too long?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1540, 160]
+      "position": [
+        1540,
+        160
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c009",
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
-            { "id": "d3", "leftValue": "={{ $json.conclusion }}", "rightValue": "success", "operator": { "type": "string", "operation": "equals" } }
+            {
+              "id": "d3",
+              "leftValue": "={{ $json.conclusion }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
           ],
           "combinator": "and"
         },
@@ -148,7 +237,10 @@
       "name": "Run succeeded?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [1540, -120]
+      "position": [
+        1540,
+        -120
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c010",
@@ -156,14 +248,22 @@
         "url": "https://api.airtable.com/v0/appYiy5hPq7BNDosa/Articles?pageSize=10&sort%5B0%5D%5Bfield%5D=first_seen_at&sort%5B0%5D%5Bdirection%5D=desc&fields%5B%5D=title&fields%5B%5D=source&fields%5B%5D=published_date&fields%5B%5D=first_seen_at&fields%5B%5D=url&fields%5B%5D=verification_status",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "airtableTokenApi",
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        }
       },
       "name": "Read newest articles from Airtable",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, -220],
+      "position": [
+        1760,
+        -220
+      ],
       "credentials": {
-        "airtableTokenApi": { "id": "aowAirtableRead1", "name": "Airtable (read)" }
+        "airtableTokenApi": {
+          "id": "aowAirtableRead1",
+          "name": "Airtable (read)"
+        }
       }
     },
     {
@@ -174,7 +274,10 @@
       "name": "Newest articles (result)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1980, -220]
+      "position": [
+        1980,
+        -220
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c012",
@@ -184,17 +287,23 @@
       "name": "Run failed",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
-      "position": [1760, -40]
+      "position": [
+        1760,
+        -40
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c013",
       "parameters": {
-        "errorMessage": "={{ 'The GitHub Actions run did not finish within about 4 minutes. Check the Actions tab' + ($json.run_url ? ': ' + $json.run_url : '.') }}"
+        "errorMessage": "={{ 'The GitHub Actions run did not finish within about 2.5 minutes (n8n Cloud trial executions stop at 180 s). Check the Actions tab' + ($json.run_url ? ': ' + $json.run_url : '.') }}"
       },
       "name": "Timed out",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
-      "position": [1760, 260]
+      "position": [
+        1760,
+        260
+      ]
     },
     {
       "id": "0c1d0a52-0b7e-4b9e-9d0a-00000000c014",
@@ -204,39 +313,150 @@
       "name": "Could not start run",
       "type": "n8n-nodes-base.stopAndError",
       "typeVersion": 1,
-      "position": [660, 200]
+      "position": [
+        660,
+        200
+      ]
     }
   ],
   "connections": {
-    "Start demo (manual)": { "main": [[{ "node": "Remember start time", "type": "main", "index": 0 }]] },
-    "Remember start time": { "main": [[{ "node": "Start GitHub Actions collect", "type": "main", "index": 0 }]] },
-    "Start GitHub Actions collect": {
+    "Start demo (manual)": {
       "main": [
-        [{ "node": "Wait 20 seconds", "type": "main", "index": 0 }],
-        [{ "node": "Could not start run", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Remember start time",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Wait 20 seconds": { "main": [[{ "node": "Check run status", "type": "main", "index": 0 }]] },
-    "Check run status": { "main": [[{ "node": "Find our run", "type": "main", "index": 0 }]] },
-    "Find our run": { "main": [[{ "node": "Finished?", "type": "main", "index": 0 }]] },
+    "Remember start time": {
+      "main": [
+        [
+          {
+            "node": "Start GitHub Actions collect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start GitHub Actions collect": {
+      "main": [
+        [
+          {
+            "node": "Wait 15 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Could not start run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check run status": {
+      "main": [
+        [
+          {
+            "node": "Find our run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find our run": {
+      "main": [
+        [
+          {
+            "node": "Finished?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "Finished?": {
       "main": [
-        [{ "node": "Run succeeded?", "type": "main", "index": 0 }],
-        [{ "node": "Waited too long?", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Run succeeded?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Waited too long?",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Waited too long?": {
       "main": [
-        [{ "node": "Timed out", "type": "main", "index": 0 }],
-        [{ "node": "Wait 20 seconds", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Timed out",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait 15 seconds",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Run succeeded?": {
       "main": [
-        [{ "node": "Read newest articles from Airtable", "type": "main", "index": 0 }],
-        [{ "node": "Run failed", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Read newest articles from Airtable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Run failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "Read newest articles from Airtable": { "main": [[{ "node": "Newest articles (result)", "type": "main", "index": 0 }]] }
+    "Read newest articles from Airtable": {
+      "main": [
+        [
+          {
+            "node": "Newest articles (result)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 15 seconds": {
+      "main": [
+        [
+          {
+            "node": "Check run status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   }
 }
