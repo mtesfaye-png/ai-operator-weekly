@@ -1,0 +1,84 @@
+# Creates exactly ONE beehiiv DRAFT from a finished demo issue. Manual only: there is no schedule.
+# It cannot publish, schedule or send (draft-only guards in lib/beehiiv.js). Mohil publishes by hand in beehiiv.
+# Needs two repository secrets: BEEHIIV_API_KEY and BEEHIIV_PUBLICATION_ID (pub_...).
+# Create Post is documented for beehiiv's Pro and Enterprise plans; on other plans the run stops with a clear message
+# and nothing is created. After a successful run, re-running it creates nothing (the post id is kept in the cache).
+
+name: beehiiv draft (manual, one draft only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_dir:
+        description: "Folder of the rendered issue"
+        required: true
+        default: "demo/2026-11-03"
+      confirm:
+        description: 'Type exactly: CREATE ONE DRAFT'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: beehiiv-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BEEHIIV_API_KEY: ${{ secrets.BEEHIIV_API_KEY }}
+      BEEHIIV_PUBLICATION_ID: ${{ secrets.BEEHIIV_PUBLICATION_ID }}
+      ISSUE_DIR: ${{ inputs.issue_dir }}
+      CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check confirmation, folder and secrets (values are never printed)
+        run: |
+          [[ "$CONFIRM" == "CREATE ONE DRAFT" ]] || { echo "::error::Type exactly CREATE ONE DRAFT in the confirm box."; exit 1; }
+          [[ "$ISSUE_DIR" =~ ^demo/[0-9]{4}-[0-9]{2}-[0-9]{2}$ && -f "$ISSUE_DIR/beehiiv-body.html" ]] || { echo "::error::issue_dir must be an existing demo/YYYY-MM-DD folder with beehiiv-body.html"; exit 1; }
+          [[ -n "$BEEHIIV_API_KEY" ]] || { echo "::error::Secret BEEHIIV_API_KEY is missing."; exit 1; }
+          [[ "$BEEHIIV_PUBLICATION_ID" =~ ^pub_[0-9a-fA-F-]+$ ]] || { echo "::error::Secret BEEHIIV_PUBLICATION_ID is missing or not pub_..."; exit 1; }
+          echo "MARKER=.beehiiv-drafts/$(basename "$ISSUE_DIR").json" >> "$GITHUB_ENV"
+          echo "KEY_SUFFIX=$(basename "$ISSUE_DIR")" >> "$GITHUB_ENV"
+
+      - name: Offline tests (no network, no cost)
+        run: npm test
+
+      - name: Restore the record of drafts already created
+        uses: actions/cache/restore@v4
+        with:
+          path: .beehiiv-drafts
+          key: beehiiv-draft-${{ env.KEY_SUFFIX }}-${{ github.run_id }}
+          restore-keys: beehiiv-draft-${{ env.KEY_SUFFIX }}-
+
+      - name: Create exactly one draft (never publishes, schedules or sends)
+        id: draft
+        run: node scripts/beehiiv-demo-draft.js "$ISSUE_DIR" "$MARKER" | tee "$RUNNER_TEMP/draft.json"
+
+      - name: Remember the draft so a re-run creates nothing
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .beehiiv-drafts
+          key: beehiiv-draft-${{ env.KEY_SUFFIX }}-${{ github.run_id }}
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## beehiiv draft"
+            echo
+            echo '```json'
+            cat "$RUNNER_TEMP/draft.json" 2>/dev/null || echo '{"created": false, "reason": "see the step log"}'
+            echo '```'
+            echo
+            echo "Open beehiiv → Posts: the post's status must be **Draft**. Nothing is scheduled or sent; Mohil publishes manually."
+          } >> "$GITHUB_STEP_SUMMARY"

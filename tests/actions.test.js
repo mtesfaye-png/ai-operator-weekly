@@ -37,3 +37,38 @@ test('ACTIONS: the job summary fails the run only for real problems', () => {
   assert.match(md, /Added to Airtable this run\*\* \| \*\*4\*\*/);
   assert.ok(md.includes('[A   B  x ](https://e.example/a)'), 'titles cannot break the table or the link');
 });
+
+test('BEEHIIV DEMO: exactly one draft, status draft, nothing scheduled; a re-run and a blocked plan create nothing', async () => {
+  const os = require('os');
+  const { main, buildDemoPayload } = require('../scripts/beehiiv-demo-draft');
+  const env = { BEEHIIV_API_KEY: 'test-key', BEEHIIV_PUBLICATION_ID: 'pub_00000000-0000-0000-0000-000000000001' };
+  const marker = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'aow-bh-')), 'm.json');
+  const calls = [];
+  const fakeFetch = async (url, opts = {}) => {
+    calls.push({ url: String(url), method: opts.method || 'GET', body: opts.body ? JSON.parse(opts.body) : null });
+    if ((opts.method || 'GET') === 'POST') return { status: 201, ok: true, json: async () => ({ data: { id: 'post_00000000-0000-0000-0000-0000000000aa' } }) };
+    return { status: 200, ok: true, json: async () => ({ data: { id: 'post_00000000-0000-0000-0000-0000000000aa', status: 'draft' } }) };
+  };
+  const first = await main(['demo/2026-11-03', marker], { env, fetchImpl: fakeFetch });
+  assert.equal(first.created, true);
+  const posts = calls.filter((c) => c.method === 'POST');
+  assert.equal(posts.length, 1, 'one create request, never retried');
+  assert.equal(posts[0].body.status, 'draft');
+  for (const k of ['scheduled_at', 'override_scheduled_at', 'recipients']) assert.equal(k in posts[0].body, false);
+  assert.ok(calls.every((c) => c.method === 'POST' || /\/posts\/post_/.test(c.url)), 'only create + read-one endpoints');
+
+  const again = await main(['demo/2026-11-03', marker], { env, fetchImpl: fakeFetch });
+  assert.equal(again.created, false);
+  assert.equal(calls.filter((c) => c.method === 'POST').length, 1, 're-run sends nothing');
+
+  const blocked = await main(['demo/2026-11-03', `${marker}.2`], { env, fetchImpl: async () => ({ status: 403, ok: false, json: async () => ({ errors: [{ message: 'plan' }] }) }) });
+  assert.deepEqual([blocked.created, blocked.plan_blocked], [false, true]);
+  assert.equal(fs.existsSync(`${marker}.2`), false);
+
+  const p = buildDemoPayload({ subject: 's', preview: 'p', html: 'x' });
+  assert.equal(p.status, 'draft');
+  assert.throws(() => require('../lib/beehiiv').assertDraftOnly({ ...p, status: 'confirmed' }), /must be "draft"/, 'a publish status is refused');
+  const wf2 = fs.readFileSync(path.join(ROOT, '.github', 'workflows', 'beehiiv-draft.yml'), 'utf8').replace(/^\s*#.*$/gm, '');
+  assert.equal(/schedule:|cron:/.test(wf2), false, 'manual only');
+  assert.match(wf2, /CREATE ONE DRAFT/);
+});
