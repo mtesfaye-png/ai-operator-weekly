@@ -14,7 +14,7 @@
 ## Run a collection on demand
 Use either route:
 - **GitHub:** go to https://github.com/mtesfaye-png/ai-operator-weekly/actions/workflows/rss-collect.yml → **Run workflow** → **Run workflow**. It finishes in about 30 seconds.
-- **n8n Cloud:** open **AI Operator Weekly - Cloud collect** → **Execute workflow**. n8n starts the same GitHub run, waits for it, and shows the 10 newest articles.
+- **n8n Cloud:** open **AI Operator Weekly - Cloud collect** → **Execute workflow**. n8n starts the same GitHub run (named **RSS collect · n8n-cloud**), waits for it, and shows the 10 newest articles. Verified live on Nov 3 ([run 41733527751](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41733527751)).
 
 Running it again is safe: you get only genuinely new articles and never duplicates.
 
@@ -44,7 +44,7 @@ Running it again is safe: you get only genuinely new articles and never duplicat
 ## Limits and costs
 - **Airtable Free:** 1,000 records per base and 1,000 API calls a month.
   - The app stops adding rows at 900 records and stops calling Airtable at 800 calls.
-  - Today: 89 articles + 29 sources = 118 records. Each run uses about 4 calls.
+  - Today: 110 articles + 29 sources = 139 records. Each run uses about 4 calls.
   - To make room, download a CSV of old Articles rows from a filtered view, then delete those rows in Airtable. Deleting in the Airtable UI costs no API calls.
 - **GitHub Actions:** about 1 minute per run, out of 2,000 free minutes a month for private repos.
 - **n8n Cloud trial:** 14 days and 1,000 executions, then it expires. Don't upgrade without approval; the workflow file stays in GitHub.
@@ -57,6 +57,7 @@ Running it again is safe: you get only genuinely new articles and never duplicat
 - **Code and workflows:** https://github.com/mtesfaye-png/ai-operator-weekly
   - `.github/workflows/rss-collect.yml`: the daily collection
   - `n8n/cloud-demo.json`: the n8n workflow
+- **Demo checklist and requirement status:** `demo/FINAL_CHECKLIST.md`
 - **Setup and demo steps:**
   - `docs/N8N_CLOUD_SETUP.md`: n8n Cloud
   - `demo/DEMO_GUIDE.md`: the browser demo
