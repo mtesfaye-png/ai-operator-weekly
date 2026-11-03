@@ -10,6 +10,8 @@
 #   only ever one daily schedule.
 
 name: RSS collect (free)
+# Shown in the Actions list, so a run started from n8n Cloud reads "RSS collect · n8n-cloud".
+run-name: "RSS collect · ${{ github.event_name == 'schedule' && 'daily schedule' || inputs.started_by || 'manual' }}"
 
 on:
   workflow_dispatch:
@@ -22,6 +24,10 @@ on:
         description: "At most this many new rows into Airtable this run (0-15)"
         required: false
         default: "15"
+      started_by:
+        description: "Label for the run list (n8n sends n8n-cloud)"
+        required: false
+        default: "manual"
   schedule:
     - cron: "17 12 * * *" # 12:17 UTC = 7:17am New York in winter, 8:17am in summer
 

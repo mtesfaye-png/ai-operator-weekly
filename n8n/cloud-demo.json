@@ -57,7 +57,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "{ \"ref\": \"main\", \"inputs\": { \"days\": \"3\", \"max_sync\": \"15\" } }",
+        "jsonBody": "{ \"ref\": \"main\", \"inputs\": { \"days\": \"3\", \"max_sync\": \"15\", \"started_by\": \"n8n-cloud\" } }",
         "options": {
           "timeout": 30000
         }
