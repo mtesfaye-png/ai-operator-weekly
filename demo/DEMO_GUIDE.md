@@ -2,13 +2,14 @@
 
 Everything here runs in the browser. There's nothing to install and no laptop acting as a server.
 
-| Piece | Where it runs | Status (Nov 3, 2026) |
+| Piece | Where it runs | Status (verified Nov 3, 2026, 16:41 UTC) |
 |---|---|---|
-| RSS collection → Airtable | GitHub Actions (free minutes) | Built and pushed. A full simulated run against the real base added 3 new articles, with 0 duplicates. **The cloud run needs the two secrets below.** |
-| Airtable database | The existing base `appYiy5hPq7BNDosa` | 29 sources, 51 real articles, 0 duplicates (read back Nov 3) |
-| Newsletter | `demo/2026-11-03/` in this repo, plus a browser page | A full issue with sources. The [DRAFT TAKE] lines wait for Mohil |
-| beehiiv | A manual import, or the one-draft workflow | Create Post is documented for the **Pro and Enterprise** plans only |
-| n8n | n8n Cloud trial (14 days, no card, 1,000 executions, 180 s per execution) | The workflow was executed for real on n8n 2.44.7 (local). n8n Cloud itself is untested until you sign up |
+| RSS collection → Airtable | GitHub Actions (free minutes) | **Fully live.** Four runs today, all green: [41675953990](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41675953990), [41676187770](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41676187770), [41676377849](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41676377849) (started by n8n) and [41676519089](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41676519089) |
+| Airtable database | The existing base `appYiy5hPq7BNDosa` | **Fully live.** 51 → 66 → 81 → 89 articles, with 0 duplicate IDs. The fourth run added 0 with writes still enabled. 29 sources |
+| n8n | n8n 2.44.7 running in Claude's session | **Demonstration (self-hosted).** A real execution started run 41676377849, saw it succeed and read 10 articles from Airtable in 36 s. Not yet run on n8n Cloud |
+| Newsletter | `demo/2026-11-03/` and the demo page | **Draft for Mohil.** Written in a Claude Code session from verified sources, not by the paid pipeline |
+| beehiiv | Manual import | **Manual.** The one-draft API workflow is built but hasn't been run: Create Post needs the Pro or Enterprise plan |
+| Claude pipeline (scout, writer) | – | **Not connected.** It needs paid Anthropic credits |
 
 ---
 
@@ -85,6 +86,7 @@ Everything here runs in the browser. There's nothing to install and no laptop ac
 ## Real screenshots in this folder
 - `screenshots/newsletter-top.png` and `screenshots/newsletter-tool-of-week.png`: the rendered newsletter.
 - `screenshots/n8n-cloud-demo-workflow.png`: the n8n workflow canvas (n8n 2.44.7 running in Claude's session, not n8n Cloud).
+- `screenshots/n8n-cloud-demo-execution-success.png`: the successful execution at 16:39 UTC (run 41676377849, 35.7 s).
 - `screenshots/n8n-cloud-demo-execution.png`: a real execution. It started GitHub run 41673616802, which failed because the Airtable secrets weren't set yet, and n8n reported that failure correctly.
 
 There are no screenshots of GitHub, Airtable or beehiiv. Those need your logged-in browser, so take them during the demo.
