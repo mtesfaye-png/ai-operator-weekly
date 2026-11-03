@@ -1,0 +1,100 @@
+# AI Operator Weekly: free RSS-only collection into the existing Airtable base, in the cloud.
+# - Run it by hand: Actions tab -> "RSS collect (free)" -> Run workflow. It also runs once a day on its own.
+# - Needs two repository secrets: AIRTABLE_TOKEN and AIRTABLE_BASE_ID (Settings -> Secrets and variables -> Actions).
+# - Calls only public RSS feeds and api.airtable.com. No Anthropic or beehiiv secret exists here, and `collect`
+#   refuses those hosts at the network layer anyway.
+# - Duplicates: Airtable upserts merge on article_id; one run at a time (concurrency); if the cached archive is
+#   missing, the run reads the base's article IDs before writing anything.
+# - Cost: about 1 minute per run on GitHub's free minutes for private repos. No paid usage is enabled here.
+# - n8n (optional) starts this same workflow through GitHub's API; it has no schedule of its own, so there is
+#   only ever one daily schedule.
+
+name: RSS collect (free)
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "Look back this many days (1-14)"
+        required: false
+        default: "3"
+      max_sync:
+        description: "At most this many new rows into Airtable this run (0-15)"
+        required: false
+        default: "15"
+  schedule:
+    - cron: "17 12 * * *" # 12:17 UTC = 7:17am New York in winter, 8:17am in summer
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rss-collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+      AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+      AOW_TIMEZONE: America/New_York
+      INPUT_DAYS: ${{ inputs.days || '3' }}
+      INPUT_MAX_SYNC: ${{ inputs.max_sync || '15' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check secrets and inputs (values are never printed)
+        run: |
+          [[ "$AIRTABLE_TOKEN" =~ ^pat[A-Za-z0-9.]{20,}$ ]] || { echo "::error::Secret AIRTABLE_TOKEN is missing or is not an Airtable personal access token (pat...)."; exit 1; }
+          [[ "$AIRTABLE_BASE_ID" =~ ^app[A-Za-z0-9]{14}$ ]] || { echo "::error::Secret AIRTABLE_BASE_ID is missing or malformed (app + 14 characters)."; exit 1; }
+          [[ "$INPUT_DAYS" =~ ^[0-9]+$ ]] && (( INPUT_DAYS >= 1 && INPUT_DAYS <= 14 )) || { echo "::error::days must be 1-14"; exit 1; }
+          [[ "$INPUT_MAX_SYNC" =~ ^[0-9]+$ ]] && (( INPUT_MAX_SYNC <= 15 )) || { echo "::error::max_sync must be 0-15"; exit 1; }
+          echo "Secrets present. days=$INPUT_DAYS max_sync=$INPUT_MAX_SYNC"
+
+      - name: Offline tests (no network, no cost)
+        run: npm test
+
+      - name: Restore the article archive and Airtable sync state from earlier runs
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: aow-data-${{ github.run_id }}
+          restore-keys: aow-data-
+
+      - name: Collect RSS and sync editorial candidates to Airtable
+        id: collect
+        env:
+          AOW_RESULT_FILE: ${{ runner.temp }}/collect-result.json
+        run: node src/cli.js collect --days "$INPUT_DAYS" --max-sync "$INPUT_MAX_SYNC"
+
+      - name: Run summary (shown on this run's page)
+        if: always() && steps.collect.outcome != 'skipped'
+        run: node .github/scripts/collect-summary.js "${{ runner.temp }}/collect-result.json"
+
+      - name: Read back Airtable and check for missing or duplicate rows (1 API call per 100 rows)
+        if: success()
+        run: node src/cli.js airtable-check
+
+      - name: Save the article archive and sync state for the next run
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: data
+          key: aow-data-${{ github.run_id }}
+
+      - name: Keep the run report (14 days)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: collect-report-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/collect-result.json
+            data/run_log.json
+          retention-days: 14
+          if-no-files-found: ignore

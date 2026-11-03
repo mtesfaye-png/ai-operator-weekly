@@ -33,6 +33,8 @@ async function main() {
   if (flag('mock')) opts = { ...opts, ...require('../tests/mocks/mockEnv').mockOptions() };
   const result = await runWorkflow(cmd, opts);
   console.log(JSON.stringify(result, null, 2));
+  // Machine-readable copy for CI (GitHub Actions job summary); stdout also carries log lines.
+  if (process.env.AOW_RESULT_FILE) fs.writeFileSync(process.env.AOW_RESULT_FILE, JSON.stringify(result, null, 2));
   if (!result.ok) return 1;
   return result.status === 'blocked' ? 2 : 0;
 }
