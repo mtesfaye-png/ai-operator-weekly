@@ -17,7 +17,9 @@ for (const f of fs.readdirSync(dir).filter((x) => x.endsWith('.json'))) {
       assert.ok(names.has(from), `connection source ${from}`);
       out.main.flat().forEach((c) => assert.ok(names.has(c.node), `connection target ${c.node}`));
     }
-    assert.ok(wf.nodes.some((n) => n.type === 'n8n-nodes-base.scheduleTrigger'));
+    assert.ok(wf.nodes.some((n) => /scheduleTrigger|manualTrigger/.test(n.type)), 'has a trigger');
+    // The cloud demo starts GitHub Actions, which owns the daily schedule: a second schedule would double-run.
+    if (f === 'cloud-demo.json') assert.equal(wf.nodes.some((n) => n.type === 'n8n-nodes-base.scheduleTrigger'), false, 'manual only');
     const text = JSON.stringify(wf);
     assert.equal(/beehiiv|\/publish|\/send|confirmed/i.test(text), false);
   });
