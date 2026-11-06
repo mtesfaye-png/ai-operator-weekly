@@ -10,14 +10,14 @@
 
 ## The 5 Biggest Things in AI This Week
 
-### 1. Into the Omniverse: How Developers Turn Ideas Into Simulations With Frontier AI Agents
-NVIDIA Blog · Nov 5 · also: [OpenAI News](https://openai.com/index/introducing-gpt-6-cyber)
+### 1. GPT‑6 Cyber: Advancing the frontier of aligned cybersecurity agents
+OpenAI News · Nov 5 · also: [NVIDIA Blog](https://blogs.nvidia.com/blog/developers-simulation-frontier-ai-agents/)
 
-From the publisher: “Turning a simulation idea into a working application means assembling assets, connecting physics and rendering, and checking that the scene behaves as intended. Developers are combining frontier AI models with NVIDIA Omniverse libraries to help…”
+From the publisher: “Introducing GPT‑6 Cyber, OpenAI’s cybersecurity model for finding exploitable vulnerabilities and developing fixes, trained to stay within authorized scope.”
 
 **Why it matters:** [DRAFT TAKE - Mohil to confirm]
 
-[Read it at NVIDIA Blog](https://blogs.nvidia.com/blog/developers-simulation-frontier-ai-agents/)
+[Read it at OpenAI News](https://openai.com/index/introducing-gpt-6-cyber)
 
 ### 2. BYOK and enterprise custom models in the Copilot usage API
 GitHub Changelog · Nov 4
@@ -37,23 +37,21 @@ From the publisher: “During its busiest week last quarter, Uber said only four
 
 [Read it at TechCrunch AI](https://techcrunch.com/2026/11/04/almost-no-one-uses-ai-agents-to-book-their-uber-company-says/)
 
-### 4. The latest AI news we announced in October 2026
-Google AI / Gemini Blog · Nov 2 · also: [The Verge AI](https://www.theverge.com/policy/1020640/midterm-elections-2026-all-the-news)
+### 4. Cities Worldwide Build and Scale AI Services With NVIDIA Physical and Agentic AI
+NVIDIA Blog · Nov 3
 
-From the publisher: “Here are Google’s latest AI updates from October 2026”
-
-**Why it matters:** [DRAFT TAKE - Mohil to confirm]
-
-[Read it at Google AI / Gemini Blog](https://blog.google/innovation-and-ai/technology/ai/google-ai-updates-october-2026/)
-
-### 5. Daybreak Red is now available in AWS GovCloud (US-East)
-OpenAI News · Nov 4
-
-From the publisher: “Daybreak Red brings GPT-5.6 Cyber to approved customers in AWS GovCloud (US-East) through Amazon Bedrock for authorized cybersecurity work.”
+From the publisher: “Cities generate enormous amounts of data from cameras, sensors and operational systems, but turning it into useful action — for planning, maintenance and public services — remains a challenge. Physical and agentic AI offer new…”
 
 **Why it matters:** [DRAFT TAKE - Mohil to confirm]
 
-[Read it at OpenAI News](https://openai.com/index/daybreak-red-aws-govcloud)
+[Read it at NVIDIA Blog](https://blogs.nvidia.com/blog/cities-physical-agentic-ai-applications/)
+
+### 5. New NVIDIA Cosmos 3 Open Models for Interactive World Simulation
+Hugging Face Blog · Nov 5
+
+**Why it matters:** [DRAFT TAKE - Mohil to confirm]
+
+[Read it at Hugging Face Blog](https://huggingface.co/blog/nvidia/cosmos-interactive-world-simulation)
 
 ## What Changed in Tools
 
@@ -66,15 +64,15 @@ From the publisher: “Daybreak Red brings GPT-5.6 Cyber to approved customers i
 - **[Dropbox acquires Tigris Data for $350M to bolster its AI infrastructure](https://techcrunch.com/2026/11/05/dropbox-acquires-tigris-data-for-350m-to-bolster-its-ai-iinfrastructure/)**
   - TechCrunch AI · Nov 5
   - From the publisher: “The deal is expected to support the development of DBX Agent Cloud, a new storage platform aimed at developers building AI models and agents.”
-- **[Open source AI is booming. Hugging Face explains who profits.](https://techcrunch.com/video/open-source-ai-is-booming-hugging-face-explains-who-profits/)**
-  - TechCrunch AI · Nov 4 · also: [r/LocalLLaMA](https://www.reddit.com/r/LocalLLaMA/comments/1xnjiu4/axion10axion1035b_hugging_face/)
-  - From the publisher: “Open source models are becoming more mainstream as enterprises, governments and startups alike rely on the promise of lower costs, more control, and more flexibility.…”
+- **[DuckDuckGo pitches itself to schools amid backlash over Google’s AI policy](https://techcrunch.com/2026/11/04/duckduckgo-pitches-itself-to-schools-amid-backlash-over-googles-ai-policy/)**
+  - TechCrunch AI · Nov 4 · also: [The Verge AI](https://www.theverge.com/tech/1025411/google-turn-off-search-ai-features), [Hacker News](https://www.nytimes.com/2026/11/03/us/google-search-schools-restrict-ai.html)
+  - From the publisher: “DuckDuckGo is courting schools frustrated by Google's AI restrictions, pointing educators to its search engine and options to disable AI features.”
 
 ## Models and Research
 
-- **[The Wizard of Open Weights: Chris Alexiuk Makes AI Easy With Open Models](https://blogs.nvidia.com/blog/nvidia-life-chris-alexiuk/)**
-  - NVIDIA Blog · Nov 5
-  - From the publisher: “Chris Alexiuk has a simple rule about open source AI: If you believe in it, be loud about it. “We should be shouting about this…”
+- **[Daybreak Red is now available in AWS GovCloud (US-East)](https://openai.com/index/daybreak-red-aws-govcloud)**
+  - OpenAI News · Nov 4
+  - From the publisher: “Daybreak Red brings GPT-5.6 Cyber to approved customers in AWS GovCloud (US-East) through Amazon Bedrock for authorized cybersecurity work.”
 - **[Introducing Images 2.6](https://openai.com/index/introducing-images-2-6)**
   - OpenAI News · Nov 4
   - From the publisher: “Images 2.6 brings faster image generation, GIF creation, more precise editing, and new API controls across ChatGPT, Codex, and the API.”

@@ -1,19 +1,19 @@
 # Sources: issue 2026-11-06
 
-162 stories in the window (82 from tier 1–2 sources; 33 left out as off-topic).
+162 stories in the window (79 from tier 1–2 sources; 36 left out as off-topic).
 
 | # | Score | Source | Published | Title | Also covered by |
 |---|---|---|---|---|---|
-| 1 | 7.3 | NVIDIA Blog (tier 1) | 2026-11-05 | [Into the Omniverse: How Developers Turn Ideas Into Simulations With Frontier AI Agents](https://blogs.nvidia.com/blog/developers-simulation-frontier-ai-agents/) | OpenAI News |
+| 1 | 7.22 | OpenAI News (tier 1) | 2026-11-05 | [GPT‑6 Cyber: Advancing the frontier of aligned cybersecurity agents](https://openai.com/index/introducing-gpt-6-cyber) | NVIDIA Blog |
 | 2 | 6.88 | GitHub Changelog (tier 1) | 2026-11-04 | [BYOK and enterprise custom models in the Copilot usage API](https://github.blog/changelog/2026-11-03-byok-and-enterprise-custom-models-in-the-copilot-usage-api) | – |
 | 3 | 6.85 | TechCrunch AI (tier 2) | 2026-11-04 | [Almost no one uses AI agents to book their Uber, company says](https://techcrunch.com/2026/11/04/almost-no-one-uses-ai-agents-to-book-their-uber-company-says/) | The Verge AI |
-| 4 | 5.81 | Google AI / Gemini Blog (tier 1) | 2026-11-02 | [The latest AI news we announced in October 2026](https://blog.google/innovation-and-ai/technology/ai/google-ai-updates-october-2026/) | The Verge AI |
-| 5 | 5.45 | OpenAI News (tier 1) | 2026-11-04 | [Daybreak Red is now available in AWS GovCloud (US-East)](https://openai.com/index/daybreak-red-aws-govcloud) | – |
+| 4 | 5.2 | NVIDIA Blog (tier 1) | 2026-11-03 | [Cities Worldwide Build and Scale AI Services With NVIDIA Physical and Agentic AI](https://blogs.nvidia.com/blog/cities-physical-agentic-ai-applications/) | – |
+| 5 | 4.58 | Hugging Face Blog (tier 1) | 2026-11-05 | [New NVIDIA Cosmos 3 Open Models for Interactive World Simulation](https://huggingface.co/blog/nvidia/cosmos-interactive-world-simulation) | – |
 | 6 | 6.82 | The Verge AI (tier 2) | 2026-11-04 | [Nothing teases a screen-free AI device ahead of launch next month](https://www.theverge.com/ai-artificial-intelligence/1026586/nothing-screen-free-ai-device-carl-pei) | TechCrunch AI |
 | 7 | 6.78 | GitHub Changelog (tier 1) | 2026-11-03 | [GitHub Copilot is now available in JetBrains Air](https://github.blog/changelog/2026-11-03-github-copilot-is-now-available-in-jetbrains-air) | – |
 | 8 | 6.28 | TechCrunch AI (tier 2) | 2026-11-05 | [Dropbox acquires Tigris Data for $350M to bolster its AI infrastructure](https://techcrunch.com/2026/11/05/dropbox-acquires-tigris-data-for-350m-to-bolster-its-ai-iinfrastructure/) | – |
-| 9 | 6.08 | TechCrunch AI (tier 2) | 2026-11-04 | [Open source AI is booming. Hugging Face explains who profits.](https://techcrunch.com/video/open-source-ai-is-booming-hugging-face-explains-who-profits/) | r/LocalLLaMA |
-| 10 | 5.79 | NVIDIA Blog (tier 1) | 2026-11-05 | [The Wizard of Open Weights: Chris Alexiuk Makes AI Easy With Open Models](https://blogs.nvidia.com/blog/nvidia-life-chris-alexiuk/) | – |
+| 9 | 6.08 | TechCrunch AI (tier 2) | 2026-11-04 | [DuckDuckGo pitches itself to schools amid backlash over Google’s AI policy](https://techcrunch.com/2026/11/04/duckduckgo-pitches-itself-to-schools-amid-backlash-over-googles-ai-policy/) | The Verge AI, Hacker News |
+| 10 | 5.45 | OpenAI News (tier 1) | 2026-11-04 | [Daybreak Red is now available in AWS GovCloud (US-East)](https://openai.com/index/daybreak-red-aws-govcloud) | – |
 | 11 | 5.38 | OpenAI News (tier 1) | 2026-11-04 | [Introducing Images 2.6](https://openai.com/index/introducing-images-2-6) | – |
 | 12 | 5.38 | OpenAI News (tier 1) | 2026-11-04 | [DevRev delivers autonomous self-service with GPT-6.1 Sol](https://openai.com/index/devrev-enterprise-self-service) | – |
 | 13 | 5.21 | OpenAI News (tier 1) | 2026-11-03 | [Heimstaden is changing residential real estate management with AI](https://openai.com/index/heimstaden) | – |
