@@ -138,3 +138,21 @@ test('SERVER: AOW_SERVER_WORKFLOWS=none allows nothing instead of crashing', () 
   assert.equal(allowedWorkflows({ AOW_SERVER_WORKFLOWS: 'none' }).size, 0);
   assert.deepEqual([...allowedWorkflows({})], ['collect']);
 });
+
+test('FREE ISSUE: everyday words do not join unrelated stories; one source gets at most one top slot', () => {
+  const filler = Array.from({ length: 30 }, (_, i) => art({ title: `Open models and agents update number ${i} for teams`, source: `Src${i}`, source_category: `c${i}` }));
+  const a = [
+    art({ title: 'The Wizard of Open Weights makes AI easy with open models', source: 'NVIDIA Blog', source_category: 'infrastructure' }),
+    art({ title: 'Olla lightweight open models proxy with weights', source: 'r/LocalLLaMA', source_tier: 4, editorial_candidate: false, source_category: 'community' }),
+    art({ title: 'Into the Omniverse with AI agents', source: 'NVIDIA Blog', source_category: 'open_source' }),
+    art({ title: 'Airbnb is working on an AI travel agent', source: 'The Verge', source_tier: 2, source_category: 'business' }),
+    art({ title: 'Airbnb says its AI travel agent launches in 2027', source: 'TechCrunch', source_tier: 2, source_category: 'tools' }),
+    ...filler,
+  ];
+  const d = digest.build(a, { issueDate: '2026-11-06' });
+  const wizard = d.top.find((x) => /Wizard/.test(x.title)) || d.sections.flatMap((s) => s.items).find((x) => /Wizard/.test(x.title));
+  if (wizard) assert.equal(wizard.also.length, 0, 'not merged with the forum post');
+  assert.equal(d.top.filter((x) => x.source === 'NVIDIA Blog').length <= 1, true);
+  const airbnb = d.top.find((x) => /Airbnb/.test(x.title));
+  assert.ok(airbnb && airbnb.also.length === 1, 'the same story from two outlets is still grouped');
+});
