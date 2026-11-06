@@ -74,7 +74,8 @@ function inMeeting() {
 }
 
 function dueJobs(state, e, now = new Date()) {
-  const allowed = new Set(String(e.AOW_SERVER_WORKFLOWS || 'collect').split(',').map((s) => s.trim()));
+  // 'none' = this Mac starts nothing (e.g. GitHub Actions does the daily collection instead).
+  const allowed = new Set(String(e.AOW_SERVER_WORKFLOWS || 'collect').split(',').map((s) => s.trim()).filter((s) => s !== 'none'));
   const { date } = localParts(now);
   const last = state.last || {};
   return JOBS.filter((j) => allowed.has(j.id)).filter((j) => {

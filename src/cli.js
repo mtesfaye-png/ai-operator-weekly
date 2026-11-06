@@ -4,6 +4,7 @@
 //   node src/cli.js daily                     # scout today's stories
 //   node src/cli.js weekly [--date 2026-10-18] [--force] [--new-beehiiv-draft]
 //   node src/cli.js analytics                 # pull stats for sent issues
+//   node src/cli.js free-issue [--date 2026-11-07] [--out issues]  # weekly draft with NO AI and no paid calls
 //   node src/cli.js doctor                    # check configuration (no paid calls)
 //   node src/cli.js airtable-check            # read back synced Articles (1 Airtable call per 100 rows)
 //   node src/cli.js airtable-status           # records + API calls vs the Free limits; notes archived rows (≈10 calls)
@@ -22,12 +23,17 @@ const opt = (name) => { const i = args.indexOf(`--${name}`); return i >= 0 ? arg
 
 async function main() {
   if (!cmd || flag('help')) {
-    console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 12).join('\n').replace(/^\/\/ ?/gm, ''));
+    console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(1, 13).join('\n').replace(/^\/\/ ?/gm, ''));
     return 0;
   }
   if (cmd === 'doctor') return doctor();
   if (cmd === 'airtable-check') return airtableCheck();
   if (cmd === 'airtable-status') return airtableStatus();
+  if (cmd === 'free-issue') {
+    const r = await require('./steps/free_issue').freeIssue({ cfg: load(), issueDate: opt('date'), outDir: opt('out') });
+    console.log(JSON.stringify(r, null, 2));
+    return r.ok ? 0 : 1;
+  }
 
   let opts = { issueDate: opt('date'), force: flag('force'), newBeehiivDraft: flag('new-beehiiv-draft'), lookbackDays: opt('days') ? Number(opt('days')) : undefined, maxSync: opt('max-sync') !== undefined ? Number(opt('max-sync')) : undefined };
   if (flag('mock')) opts = { ...opts, ...require('../tests/mocks/mockEnv').mockOptions() };

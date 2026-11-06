@@ -1,0 +1,79 @@
+# AI Operator Weekly: the free weekly issue. No AI, no paid calls.
+# - Every Saturday it builds the week's draft from the articles the daily "RSS collect (free)" run saved, and
+#   commits it to issues/<date>/ (issue.md, issue.html, beehiiv-body.html, sources.md).
+# - Run it by hand any time: Actions tab -> "Weekly free issue" -> Run workflow.
+# - Then: open issues/<date>/issue.html, fill in the [DRAFT TAKE] lines (or run /write-issue in Claude Code
+#   for the fully written version), and paste beehiiv-body.html into a beehiiv draft. Nothing is sent from here.
+# - Reads the cached article archive; if that's missing it reads Airtable's Articles table (1 call per 100 rows).
+
+name: Weekly free issue
+
+run-name: "Weekly free issue · ${{ github.event_name == 'schedule' && 'Saturday schedule' || 'manual' }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Issue date, YYYY-MM-DD (blank = today, New York time)"
+        required: false
+        default: ""
+  schedule:
+    - cron: "40 13 * * 6" # Saturdays 13:40 UTC, after the daily collect at 12:17
+
+permissions:
+  contents: write # only to commit the issue files under issues/
+
+concurrency:
+  group: weekly-free-issue
+  cancel-in-progress: false
+
+jobs:
+  issue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+      AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+      AOW_TIMEZONE: America/New_York
+      INPUT_DATE: ${{ inputs.date }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check the date input
+        run: |
+          [[ -z "$INPUT_DATE" || "$INPUT_DATE" =~ ^20[0-9]{2}-[01][0-9]-[0-3][0-9]$ ]] || { echo "::error::date must be YYYY-MM-DD or blank"; exit 1; }
+
+      - name: Offline tests (no network, no cost)
+        run: npm test
+
+      - name: Restore the article archive from the daily collect runs
+        uses: actions/cache/restore@v4
+        with:
+          path: data
+          key: aow-data-${{ github.run_id }}
+          restore-keys: aow-data-
+
+      - name: Build the free issue
+        run: |
+          if [ -n "$INPUT_DATE" ]; then node src/cli.js free-issue --out issues --date "$INPUT_DATE"; else node src/cli.js free-issue --out issues; fi | tee "$RUNNER_TEMP/free-issue.json"
+
+      - name: Summary (shown on this run's page)
+        run: |
+          node -e '
+            const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8").replace(/^[^{]*/, ""));
+            const out = [`## Free issue ${r.issue_date}`, "", `Paid API calls: **0** · stories this week: ${r.stories} · read from ${r.articles_from}`, "", "### Top 5", ...r.top_stories.map((t, i) => `${i + 1}. ${t}`), "", `Files: \`issues/${r.issue_date}/\` (open issue.html; paste beehiiv-body.html into beehiiv).`];
+            require("fs").appendFileSync(process.env.GITHUB_STEP_SUMMARY, out.join("\n") + "\n");
+          ' "$RUNNER_TEMP/free-issue.json"
+
+      - name: Save the issue to the repo
+        run: |
+          git config user.name "AI Operator Weekly (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add issues
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git commit -m "Free issue $(ls -1 issues | sort | tail -1) (no AI)"
+          git push

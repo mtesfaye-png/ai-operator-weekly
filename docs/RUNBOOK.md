@@ -6,7 +6,7 @@ Every **🛑 STOP** means: send me what it asks for and wait for my answer befor
 
 Some steps need code changes from me first. Those steps give you a **message to send Claude**, word for
 word. Paste it into this Claude Code session, or into a new session started on the
-`MatchappAI/Operator-Weekly-AI` repository.
+`mtesfaye-png/ai-operator-weekly` repository.
 
 ---
 
