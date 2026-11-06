@@ -23,7 +23,7 @@ const { makeNotifier } = require('./notify');
 const MAX_BODY = 10000;
 
 function allowedWorkflows(env = process.env) {
-  const list = String(env.AOW_SERVER_WORKFLOWS || 'collect').split(',').map((s) => s.trim()).filter(Boolean);
+  const list = String(env.AOW_SERVER_WORKFLOWS || 'collect').split(',').map((s) => s.trim()).filter((s) => s && s !== 'none'); // none = start nothing
   const unknown = list.filter((w) => !WORKFLOWS[w]);
   if (unknown.length) throw new Error(`AOW_SERVER_WORKFLOWS has unknown workflow(s): ${unknown.join(', ')}`);
   return new Set(list);
