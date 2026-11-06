@@ -44,7 +44,9 @@ function doctor() {
     ['AIRTABLE_TOKEN + AIRTABLE_BASE_ID', !!(cfg.airtable.token && cfg.airtable.baseId), 'optional: without it, data is kept in data/'],
     ['BEEHIIV_API_KEY + BEEHIIV_PUBLICATION_ID', !!(cfg.beehiiv.apiKey && cfg.beehiiv.publicationId), 'optional: without it, issues export for manual paste'],
     ['BEEHIIV_POST_TEMPLATE_ID', !!cfg.beehiiv.templateId, 'optional: house template'],
-    ['SLACK_WEBHOOK_URL', !!cfg.alerts.slackWebhook, 'optional: alerts go to stderr without it'],
+    ['SMTP_HOST + ALERT_EMAIL_TO (email alerts)', !!cfg.alerts.email, cfg.alerts.email ? `alerts emailed to ${cfg.alerts.email.to.join(', ')}` : 'optional: alerts go to stderr without email or Slack'],
+    ['SMTP_PASS', !!(cfg.alerts.email && cfg.alerts.email.pass), 'needed for Gmail (an app password)'],
+    ['SLACK_WEBHOOK_URL', !!cfg.alerts.slackWebhook, 'optional'],
     ['AOW_TRIGGER_TOKEN', !!cfg.server.token, 'required for the n8n trigger server'],
   ];
   for (const [k, ok, note] of rows) console.log(`${ok ? '✔' : '✘'} ${k.padEnd(42)} ${note}`);
@@ -54,7 +56,7 @@ function doctor() {
   console.log(`Budget caps (app-side estimates, not a provider limit): daily $${effectiveMaxUsd(lim.daily.max_usd)} / ${lim.daily.max_calls} calls, weekly $${effectiveMaxUsd(lim.weekly.max_usd)} / ${lim.weekly.max_calls} calls${process.env.AOW_MAX_USD ? ' (lowered by AOW_MAX_USD)' : ''}`);
   console.log('collect (RSS-only) will contact: public RSS feeds only (+ Airtable if configured). No Anthropic, no beehiiv.');
   console.log(`Trigger server can start: ${process.env.AOW_SERVER_WORKFLOWS || 'collect'} (AOW_SERVER_WORKFLOWS; paid workflows only if listed there)`);
-  console.log(`Daily run will contact: Anthropic API${cfg.anthropic.apiKey ? '' : ' (no key: will fail)'}, public RSS feeds (no account)${cfg.airtable.token && cfg.airtable.baseId ? ', Airtable' : ''}${cfg.alerts.slackWebhook ? ', Slack' : ''}. beehiiv is not used by daily.`);
+  console.log(`Daily run will contact: Anthropic API${cfg.anthropic.apiKey ? '' : ' (no key: will fail)'}, public RSS feeds (no account)${cfg.airtable.token && cfg.airtable.baseId ? ', Airtable' : ''}${cfg.alerts.email ? `, ${cfg.alerts.email.host} (alert email)` : ''}${cfg.alerts.slackWebhook ? ', Slack' : ''}. beehiiv is not used by daily.`);
   if (cfg.airtable.token) console.log(`Airtable API calls this month (this app, local count): ${require('./store/usage').usedThisMonth(cfg.dataDir)} / budget ${cfg.runtime.airtable.monthly_call_budget} (Free plan: 1,000 per workspace)`);
   console.log(`Data: ${cfg.airtable.token ? 'Airtable' : path.relative(process.cwd(), cfg.dataDir) || cfg.dataDir} · Exports: ${cfg.outDir}`);
   return cfg.anthropic.apiKey ? 0 : 1;

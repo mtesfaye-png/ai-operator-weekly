@@ -18,7 +18,13 @@ const tmp = (n) => fs.mkdtempSync(path.join(os.tmpdir(), `aow-${n}-`));
 const quiet = async (fn) => { const l = console.log, e = console.error; console.log = () => {}; console.error = () => {}; try { return await fn(); } finally { console.log = l; console.error = e; } };
 
 function gateCodes(markdown, resources = []) {
-  const draft = { sections: [{ id: 'big5', title: 'Big 5', markdown }, { id: 'build_better', title: 'Build Better', markdown: 'ok' }, { id: 'one_thing', title: 'One Thing', markdown: 'ok' }], claims_used: [] };
+  // big5 carries the text under test; every other required section (from config) gets filler.
+  const filler = {
+    tool_of_week: "Who it's for: solo operators. Who should skip: teams needing SSO. **Verdict: Watch**",
+    workflow: 'Steps 1-4. Human review: approve before anything reaches a customer.',
+  };
+  const others = newsletterCfg.sections.filter((s) => s.required && s.id !== 'big5').map((s) => ({ id: s.id, title: s.title, markdown: filler[s.id] || 'ok' }));
+  const draft = { sections: [{ id: 'big5', title: 'Big 5', markdown }, ...others], claims_used: [] };
   return runGate({ draft, packet: { stories: [], resources }, factCheck: { verdict: 'PASS', items: [] }, newsletterCfg, window: { start: '2026-10-12', end: '2026-10-18' } }).blocking.map((b) => b.code);
 }
 

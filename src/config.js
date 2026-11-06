@@ -38,7 +38,20 @@ function load() {
       publicationId: env.BEEHIIV_PUBLICATION_ID || '',
       templateId: env.BEEHIIV_POST_TEMPLATE_ID || '',
     },
-    alerts: { slackWebhook: env.SLACK_WEBHOOK_URL || '' },
+    alerts: {
+      slackWebhook: env.SLACK_WEBHOOK_URL || '',
+      // Email alerts, e.g. Gmail: SMTP_HOST=smtp.gmail.com, SMTP_PORT=465, SMTP_USER=you@gmail.com,
+      // SMTP_PASS=<16-character app password>, ALERT_EMAIL_TO=you@gmail.com (comma-separated for several).
+      email: env.SMTP_HOST && env.ALERT_EMAIL_TO ? {
+        host: env.SMTP_HOST,
+        port: Number(env.SMTP_PORT || 465),
+        user: env.SMTP_USER || '',
+        pass: (env.SMTP_PASS || '').replace(/\s+/g, ''),
+        from: env.ALERT_EMAIL_FROM || env.SMTP_USER || env.ALERT_EMAIL_TO.split(',')[0].trim(),
+        to: env.ALERT_EMAIL_TO.split(',').map((s) => s.trim()).filter(Boolean),
+      } : null,
+      macNotify: env.AOW_MAC_NOTIFY === '1',
+    },
     server: { token: env.AOW_TRIGGER_TOKEN || '', port: Number(env.PORT || 8787) },
     timezone: env.AOW_TIMEZONE || 'America/New_York',
   };
