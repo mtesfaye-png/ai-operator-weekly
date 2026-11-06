@@ -132,3 +132,9 @@ test('COPY-AIRTABLE: dry run writes nothing; --write upserts on each key; a seco
   assert.equal(bases.appFROM00000000001.Articles.length, 2, 'the source is never changed');
   await assert.rejects(main({ env: { ...env, AIRTABLE_BASE_ID: env.FROM_AIRTABLE_BASE_ID }, fetchImpl: fakeFetch, log: quiet }), /same base/);
 });
+
+test('SERVER: AOW_SERVER_WORKFLOWS=none allows nothing instead of crashing', () => {
+  const { allowedWorkflows } = require('../src/server');
+  assert.equal(allowedWorkflows({ AOW_SERVER_WORKFLOWS: 'none' }).size, 0);
+  assert.deepEqual([...allowedWorkflows({})], ['collect']);
+});

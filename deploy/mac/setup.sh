@@ -47,6 +47,8 @@ envget() { grep -E "^$1=" .env 2>/dev/null | head -1 | cut -d= -f2- || true; }
 TOKEN="$(envget AOW_TRIGGER_TOKEN)"
 [ -n "$TOKEN" ] || TOKEN="$(openssl rand -hex 32)"
 WORKFLOWS="collect"
+# GitHub Actions does the daily collect now; keep "none" if it was chosen, so a reinstall doesn't start a second collector.
+grep -q '^AOW_SERVER_WORKFLOWS=none$' "$REPO/.env" 2>/dev/null && WORKFLOWS="none"
 if [ "$PAID" = 1 ]; then
   [ -n "$(envget ANTHROPIC_API_KEY)" ] || { echo "No ANTHROPIC_API_KEY in .env yet. Run deploy/mac/set-secrets.sh first."; exit 1; }
   WORKFLOWS="collect,daily,weekly,analytics"
