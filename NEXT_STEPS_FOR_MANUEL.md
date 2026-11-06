@@ -42,20 +42,22 @@ collection keeps running on GitHub Actions exactly as you built it, and it's now
 
 ## What I need you to finish
 
-1. **Share your Airtable base with me.** We're keeping **your** base as the one we both use.
-   - Open base `appYiy5hPq7BNDosa` → Share → invite `guptapartnersteam@gmail.com` as **Creator**.
-   - Tell me when it's done, and I'll copy my rows into yours with `scripts/copy-airtable.js` (about 150 records).
-2. **Saturday routine**, every week:
+1. **Saturday routine**, every week:
    1. Open `issues/<date>/issue.html`. GitHub builds it every Saturday morning.
    2. Either fill in the [DRAFT TAKE] lines, or run `/write-issue` in Claude Code for the fully written version.
    3. Run `node scripts/check-issue.js issues/<date>/written/issue.md --final`.
    4. Paste `beehiiv-body.html` into a new beehiiv post and leave it as a **draft**. I review it and press Publish.
 
-   This week's (Nov 7) is already written: `issues/2026-11-07/written/`. It only needs my takes and the beehiiv paste.
-3. **n8n Cloud:** let the trial run out. GitHub does the scheduling now.
-4. **Later, only with my OK:** the paid AI steps and the beehiiv API (it needs beehiiv's Pro plan).
+   This week's (Nov 7) is already written: `issues/2026-11-07/written/`.
+2. **n8n Cloud:** let the trial run out. GitHub does the scheduling now.
+3. **Later, only with my OK:** the paid AI steps and the beehiiv API (it needs beehiiv's Pro plan).
 
-Already done, so nothing for you here: the new Saturday job has been run on GitHub and works.
+Already done, so nothing for you here:
+- The new Saturday job has been run on GitHub and works.
+- Mohil's Airtable data (144 rows) is copied into your base by the one-time "Import Airtable export" job. Your
+  base now has 255 of the 1,000 Free records. Your base doesn't have the newer `scores` column on Stories, or the
+  `claims`, `pricing` and `packet` columns on Research, so those details stayed in Mohil's old base. Nothing
+  needs them for the free newsletter.
 
 ## Rules that still hold
 - Draft only: nothing publishes or sends automatically.
