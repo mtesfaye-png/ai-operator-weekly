@@ -10,14 +10,14 @@
 
 ## The 5 Biggest Things in AI This Week
 
-### 1. The Wizard of Open Weights: Chris Alexiuk Makes AI Easy With Open Models
-NVIDIA Blog · Nov 5 · also: [r/LocalLLaMA](https://www.reddit.com/r/LocalLLaMA/comments/1xnnr3k/tencent_says_hy4_ranks_among_the_best_open_models/)
+### 1. Into the Omniverse: How Developers Turn Ideas Into Simulations With Frontier AI Agents
+NVIDIA Blog · Nov 5 · also: [OpenAI News](https://openai.com/index/introducing-gpt-6-cyber)
 
-From the publisher: “Chris Alexiuk has a simple rule about open source AI: If you believe in it, be loud about it. “We should be shouting about this technology from the rooftops,” said Alexiuk, a Toronto-based senior product…”
+From the publisher: “Turning a simulation idea into a working application means assembling assets, connecting physics and rendering, and checking that the scene behaves as intended. Developers are combining frontier AI models with NVIDIA Omniverse libraries to help…”
 
 **Why it matters:** [DRAFT TAKE - Mohil to confirm]
 
-[Read it at NVIDIA Blog](https://blogs.nvidia.com/blog/nvidia-life-chris-alexiuk/)
+[Read it at NVIDIA Blog](https://blogs.nvidia.com/blog/developers-simulation-frontier-ai-agents/)
 
 ### 2. BYOK and enterprise custom models in the Copilot usage API
 GitHub Changelog · Nov 4
@@ -28,53 +28,53 @@ From the publisher: “The Copilot usage metrics API now shows bring your own ke
 
 [Read it at GitHub Changelog](https://github.blog/changelog/2026-11-03-byok-and-enterprise-custom-models-in-the-copilot-usage-api)
 
-### 3. DuckDuckGo pitches itself to schools amid backlash over Google’s AI policy
-TechCrunch AI · Nov 4 · also: [The Verge AI](https://www.theverge.com/tech/1025411/google-turn-off-search-ai-features), [Hacker News](https://www.nytimes.com/2026/11/03/us/google-search-schools-restrict-ai.html)
+### 3. Almost no one uses AI agents to book their Uber, company says
+TechCrunch AI · Nov 4 · also: [The Verge AI](https://www.theverge.com/transportation/1026306/uber-ai-agents-q3-earnings-disintermediation)
 
-From the publisher: “DuckDuckGo is courting schools frustrated by Google's AI restrictions, pointing educators to its search engine and options to disable AI features.”
-
-**Why it matters:** [DRAFT TAKE - Mohil to confirm]
-
-[Read it at TechCrunch AI](https://techcrunch.com/2026/11/04/duckduckgo-pitches-itself-to-schools-amid-backlash-over-googles-ai-policy/)
-
-### 4. Into the Omniverse: How Developers Turn Ideas Into Simulations With Frontier AI Agents
-NVIDIA Blog · Nov 5
-
-From the publisher: “Turning a simulation idea into a working application means assembling assets, connecting physics and rendering, and checking that the scene behaves as intended. Developers are combining frontier AI models with NVIDIA Omniverse libraries to help…”
+From the publisher: “During its busiest week last quarter, Uber said only four people booked a ride using an AI agent.”
 
 **Why it matters:** [DRAFT TAKE - Mohil to confirm]
 
-[Read it at NVIDIA Blog](https://blogs.nvidia.com/blog/developers-simulation-frontier-ai-agents/)
+[Read it at TechCrunch AI](https://techcrunch.com/2026/11/04/almost-no-one-uses-ai-agents-to-book-their-uber-company-says/)
 
-### 5. GPT‑6 Cyber: Advancing the frontier of aligned cybersecurity agents
-OpenAI News · Nov 5
+### 4. The latest AI news we announced in October 2026
+Google AI / Gemini Blog · Nov 2 · also: [The Verge AI](https://www.theverge.com/policy/1020640/midterm-elections-2026-all-the-news)
 
-From the publisher: “Introducing GPT‑6 Cyber, OpenAI’s cybersecurity model for finding exploitable vulnerabilities and developing fixes, trained to stay within authorized scope.”
+From the publisher: “Here are Google’s latest AI updates from October 2026”
 
 **Why it matters:** [DRAFT TAKE - Mohil to confirm]
 
-[Read it at OpenAI News](https://openai.com/index/introducing-gpt-6-cyber)
+[Read it at Google AI / Gemini Blog](https://blog.google/innovation-and-ai/technology/ai/google-ai-updates-october-2026/)
+
+### 5. Daybreak Red is now available in AWS GovCloud (US-East)
+OpenAI News · Nov 4
+
+From the publisher: “Daybreak Red brings GPT-5.6 Cyber to approved customers in AWS GovCloud (US-East) through Amazon Bedrock for authorized cybersecurity work.”
+
+**Why it matters:** [DRAFT TAKE - Mohil to confirm]
+
+[Read it at OpenAI News](https://openai.com/index/daybreak-red-aws-govcloud)
 
 ## What Changed in Tools
 
 - **[Nothing teases a screen-free AI device ahead of launch next month](https://www.theverge.com/ai-artificial-intelligence/1026586/nothing-screen-free-ai-device-carl-pei)**
-  - The Verge AI · Nov 4 · also: [TechCrunch AI](https://techcrunch.com/2026/11/04/nothing-ceo-says-companys-mysterious-ai-first-device-is-dropping-next-month/)
+  - The Verge AI · Nov 4 · also: [TechCrunch AI](https://techcrunch.com/2026/11/05/agility-is-the-first-pure-humanoid-robot-company-on-the-stock-market-are-you-buying/)
   - From the publisher: “Nothing CEO Carl Pei said in a post on X that the company's launching its first AI device in December. That's just a little over…”
 - **[GitHub Copilot is now available in JetBrains Air](https://github.blog/changelog/2026-11-03-github-copilot-is-now-available-in-jetbrains-air)**
   - GitHub Changelog · Nov 3
   - From the publisher: “You can now delegate coding tasks, guide execution, and review results with GitHub Copilot in JetBrains Air. The integration uses the Agent Client Protocol (ACP)…”
-- **[OpenAI released a new cybersecurity model. Is that enough?](https://techcrunch.com/2026/11/05/openai-released-a-new-cybersecurity-model-is-that-enough/)**
-  - TechCrunch AI · Nov 5 · also: [The Verge AI](https://www.theverge.com/ai-artificial-intelligence/1027599/openai-gpt-6-cyber-launch)
-  - From the publisher: “OpenAI's newest cybersecurity model comes out as AI labs face scrutiny of their work to protect digital infrastructure.”
 - **[Dropbox acquires Tigris Data for $350M to bolster its AI infrastructure](https://techcrunch.com/2026/11/05/dropbox-acquires-tigris-data-for-350m-to-bolster-its-ai-iinfrastructure/)**
   - TechCrunch AI · Nov 5
   - From the publisher: “The deal is expected to support the development of DBX Agent Cloud, a new storage platform aimed at developers building AI models and agents.”
+- **[Open source AI is booming. Hugging Face explains who profits.](https://techcrunch.com/video/open-source-ai-is-booming-hugging-face-explains-who-profits/)**
+  - TechCrunch AI · Nov 4 · also: [r/LocalLLaMA](https://www.reddit.com/r/LocalLLaMA/comments/1xnjiu4/axion10axion1035b_hugging_face/)
+  - From the publisher: “Open source models are becoming more mainstream as enterprises, governments and startups alike rely on the promise of lower costs, more control, and more flexibility.…”
 
 ## Models and Research
 
-- **[Daybreak Red is now available in AWS GovCloud (US-East)](https://openai.com/index/daybreak-red-aws-govcloud)**
-  - OpenAI News · Nov 4
-  - From the publisher: “Daybreak Red brings GPT-5.6 Cyber to approved customers in AWS GovCloud (US-East) through Amazon Bedrock for authorized cybersecurity work.”
+- **[The Wizard of Open Weights: Chris Alexiuk Makes AI Easy With Open Models](https://blogs.nvidia.com/blog/nvidia-life-chris-alexiuk/)**
+  - NVIDIA Blog · Nov 5
+  - From the publisher: “Chris Alexiuk has a simple rule about open source AI: If you believe in it, be loud about it. “We should be shouting about this…”
 - **[Introducing Images 2.6](https://openai.com/index/introducing-images-2-6)**
   - OpenAI News · Nov 4
   - From the publisher: “Images 2.6 brings faster image generation, GIF creation, more precise editing, and new API controls across ChatGPT, Codex, and the API.”
@@ -96,12 +96,12 @@ From the publisher: “Introducing GPT‑6 Cyber, OpenAI’s cybersecurity model
 ## Chatter Worth Watching
 *From newsletters and forums. Unverified: trace it to the original before relying on it.*
 
+- **[“Can Qwen directly control the robot as well as GPT-6 Astra?”](https://www.reddit.com/r/LocalLLaMA/comments/1xmyji8/can_qwen_directly_control_the_robot_as_well_as/)**
+  - r/LocalLLaMA · Nov 3 · also: [Hacker News](https://alignment.openai.com/misalignment-reports/covert-underperformance-on-safety-research-tasks/)
+  - From the publisher: “A open source harness that was used with Qwen3.8 FN that QwenDev did a shout out to. Available now. From…”
 - **[Olla v0.1.0 - Lightweight open-source LLM proxy for homelabs & on-prem inference (Ollama, vLLM, SGLang, llama.cpp, oMLX with failover, sticky sessions & load balancing)](https://www.reddit.com/r/LocalLLaMA/comments/1xmq913/olla_v010_lightweight_opensource_llm_proxy_for/)**
   - r/LocalLLaMA · Nov 3 · also: [Latent Space](https://latent.space/p/ainews-llms-can-read-write-neural-network-weights-weight-space-programming-cuts-autoresearch-out-of/)
   - From the publisher: “Hey folks, About 18 months ago we started building Olla to solve some of the headaches we kept running into…”
-- **[“Can Qwen directly control the robot as well as GPT-6 Astra?”](https://www.reddit.com/r/LocalLLaMA/comments/1xmyji8/can_qwen_directly_control_the_robot_as_well_as/)**
-  - r/LocalLLaMA · Nov 3
-  - From the publisher: “A open source harness that was used with Qwen3.8 FN that QwenDev did a shout out to. Available now. From…”
 - **[Official Statement: Qwen Models Will Stick to Open Source to the End!](https://www.reddit.com/r/LocalLLaMA/comments/1xm28e6/official_statement_qwen_models_will_stick_to_open/)**
   - r/LocalLLaMA · Nov 2
   - From the publisher: “There were some rumours the last few days that Qwen4 will be the last open-weight series of Qwen, and future…”
