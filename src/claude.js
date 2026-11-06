@@ -9,7 +9,7 @@
 // - Returns every URL Claude actually retrieved (search results + fetched pages, with retrieved_at)
 //   so downstream code can reject evidence URLs that were never opened.
 
-const { validate } = require('./validate');
+const { validate, enumHints, coerce } = require('./validate');
 
 const RETRY = new Set([408, 429, 500, 502, 503, 504, 529]);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -170,20 +170,35 @@ async function callClaude({ cfg, fetchImpl, budget, step, model, system, message
   return { text: finalText, retrieved, usage, stop_reason: stop };
 }
 
+// Finds the JSON object in a model answer. Order matters: the writer's JSON often CONTAINS markdown code
+// fences inside string values (prompt templates), so the first ``` block is not necessarily the answer.
+// 1) the whole answer, 2) one fence wrapping the whole answer, 3) first "{" to last "}", 4) any fenced block.
 function extractJson(text) {
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  const candidate = fence ? fence[1] : text.slice(text.indexOf('{'), text.lastIndexOf('}') + 1);
-  return JSON.parse(candidate);
+  const t = String(text || '').trim();
+  const tries = [t];
+  const outer = t.match(/^```[a-zA-Z]*\s*\n([\s\S]*?)\n?```\s*$/);
+  if (outer) tries.push(outer[1]);
+  const start = t.indexOf('{'), end = t.lastIndexOf('}');
+  if (start >= 0 && end > start) tries.push(t.slice(start, end + 1));
+  for (const m of t.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)) tries.push(m[1]);
+  let firstError;
+  for (const c of tries) {
+    try { return JSON.parse(c); } catch (e) { firstError ||= e; }
+  }
+  throw firstError || new SyntaxError('no JSON object found');
 }
 
 // Agent call that must return JSON matching a schema. On a parse or schema failure it asks once
 // for a corrected object (no tools, so the repair is cheap).
 async function askJson({ schema, user, ...opts }) {
-  const messages = [{ role: 'user', content: user }];
+  // State every allowed value up front; models otherwise invent near-miss labels (seen in live runs).
+  const hints = enumHints(schema);
+  const content = hints.length ? `${user}\n\nAllowed values (use exactly these ids, nothing else):\n${hints.map((h) => `- ${h}`).join('\n')}` : user;
+  const messages = [{ role: 'user', content }];
   const first = await callClaude({ ...opts, messages });
   let parsed, errors;
   try {
-    parsed = extractJson(first.text);
+    parsed = coerce(schema, extractJson(first.text));
     ({ errors } = validate(schema, parsed));
   } catch (e) { errors = [`not valid JSON: ${e.message}`]; }
   if (!errors.length) return { data: parsed, retrieved: first.retrieved, usage: first.usage };
@@ -193,10 +208,20 @@ async function askJson({ schema, user, ...opts }) {
     messages: [...messages, { role: 'assistant', content: first.text || '(empty)' },
       { role: 'user', content: `Your output failed validation:\n- ${errors.slice(0, 30).join('\n- ')}\n\nReturn ONLY the corrected JSON object. Do not add facts that were not in your previous answer.` }],
   });
-  try { parsed = extractJson(repair.text); }
-  catch (e) { throw new Error(`${opts.step}: output still not valid JSON after repair (${e.message}); nothing downstream was run`); }
+  // Keep both answers when a step fails for good, so the cause can be read later instead of guessed.
+  const keep = () => {
+    try {
+      const dir = require('path').join(opts.cfg.outDir, '_failed');
+      require('fs').mkdirSync(dir, { recursive: true });
+      const f = require('path').join(dir, `${new Date().toISOString().replace(/[:.]/g, '-')}-${String(opts.step).replace(/[^\w-]/g, '_')}.txt`);
+      require('fs').writeFileSync(f, `=== first answer ===\n${first.text}\n\n=== repair answer ===\n${repair.text}\n`);
+      return ` Raw answers saved to ${f}.`;
+    } catch { return ''; }
+  };
+  try { parsed = coerce(schema, extractJson(repair.text)); }
+  catch (e) { throw new Error(`${opts.step}: output still not valid JSON after repair (${e.message}); nothing downstream was run.${keep()}`); }
   const v = validate(schema, parsed);
-  if (!v.valid) throw new Error(`${opts.step}: output still invalid after repair: ${v.errors.slice(0, 5).join('; ')}`);
+  if (!v.valid) throw new Error(`${opts.step}: output still invalid after repair: ${v.errors.slice(0, 5).join('; ')}.${keep()}`);
   return { data: parsed, retrieved: first.retrieved, usage: first.usage };
 }
 

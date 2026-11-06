@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>AI Operator Weekly: Operating Manual</title>
+<style>
+  @page { size: Letter; margin: 0.7in; }
+  body { font: 11pt/1.5 -apple-system, "Helvetica Neue", Arial, sans-serif; color: #1a1a1a; max-width: 7.1in; margin: 0 auto; }
+  h1 { font-size: 22pt; margin: 0 0 4pt; } h2 { font-size: 14pt; margin: 22pt 0 6pt; border-bottom: 1px solid #ddd; padding-bottom: 3pt; page-break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12pt 0 4pt; } .sub { color: #555; margin: 0 0 14pt; }
+  table { border-collapse: collapse; width: 100%; margin: 6pt 0 10pt; font-size: 10pt; page-break-inside: avoid; }
+  th, td { border: 1px solid #ddd; padding: 4pt 6pt; text-align: left; vertical-align: top; } th { background: #f4f4f4; }
+  code { font: 9.5pt Menlo, monospace; background: #f4f4f4; padding: 0 3px; border-radius: 3px; }
+  img { width: 100%; border: 1px solid #ccc; border-radius: 4px; margin: 4pt 0 2pt; } .cap { font-size: 9pt; color: #666; margin-bottom: 10pt; }
+  .box { border-left: 4px solid #c0392b; background: #fdf3f2; padding: 6pt 10pt; margin: 8pt 0; } .ok { color: #1e7d32; font-weight: 600; } .no { color: #b3261e; font-weight: 600; } .part { color: #9a6700; font-weight: 600; }
+  ol li, ul li { margin: 2pt 0; } .pb { page-break-before: always; }
+</style></head><body>
+
+<h1>AI Operator Weekly</h1>
+<p class="sub">Operating manual, for Mohil and whoever helps run it · November 2026 · runs on Mohil's Mac</p>
+
+<div class="box"><b>The one rule:</b> nothing ever sends by itself. Every issue ends as a <b>draft</b>. Mohil reads it, edits it and presses send.</div>
+
+<h2>1. What it does, in one minute</h2>
+<ol>
+  <li><b>Every day</b> it reads about 15 AI news feeds (free) and has Claude find and score the day's important stories (about $0.30).</li>
+  <li><b>Once a week</b> (Saturday, or the first day after it you're at the Mac) it picks the best 5 stories, has Claude check each one against the original sources and the vendors' own pricing pages, writes the full 13-section issue, then has a second, stricter Claude model fact-check it.</li>
+  <li>A <b>quality gate</b> in code blocks the issue if anything is unsourced, out of date, exaggerated or missing.</li>
+  <li>If it passes, the issue lands in <b>beehiiv as a draft</b>, and you get a "draft ready" alert.</li>
+  <li><b>After you send</b>, it pulls opens and clicks back so later issues learn what readers liked.</li>
+</ol>
+
+<h2>2. When it runs</h2>
+<p>Not at fixed times, because a sleeping Mac would miss them. It starts the day's work once you have been <b>using the Mac for 30 minutes in a row</b> and <b>no meeting is on</b> (any microphone in use, or a Zoom meeting). Never before 6am. Each job runs once a day; the weekly issue once a week.</p>
+<table><tr><th>Job</th><th>What it does</th><th>Cost</th></tr>
+<tr><td>Collect</td><td>Reads the news feeds into Airtable</td><td>Free</td></tr>
+<tr><td>Daily scout</td><td>Claude finds and scores the day's stories</td><td>≈ $0.30</td></tr>
+<tr><td>Weekly issue</td><td>Research → write → fact-check → gate → beehiiv draft</td><td>≈ $4–7</td></tr>
+<tr><td>Analytics</td><td>Pulls beehiiv stats for sent issues</td><td>Free</td></tr>
+<tr><td>Maintenance (Sundays)</td><td>Backup, Airtable clean-up, log rotation</td><td>Free</td></tr></table>
+
+<h2>3. Your weekly routine</h2>
+<ol>
+  <li><b>Optional, before Saturday:</b> write your takes. Make a file <code>notes/&lt;issue-date&gt;.md</code> with a line per story, or type them into that week's row in Airtable → <b>Issues → mohil_notes</b>. Without them each "Mohil take" shows as a highlighted <i>[DRAFT TAKE]</i> for you to fill in.</li>
+  <li><b>When the "draft ready" alert arrives</b>, open the beehiiv draft (link in the alert). Until beehiiv is connected: open <code>out/&lt;date&gt;/preview.html</code> and paste <code>out/&lt;date&gt;/issue.html</code> into a new beehiiv post (see the manual fallback doc).</li>
+  <li><b>Read the red "EDITOR REVIEW REQUIRED" box</b> at the top. It lists what needs your decision (takes to approve, length, anything flagged). Deal with each, then delete the box.</li>
+  <li><b>Pick a subject line</b> from the options and send from beehiiv as usual.</li>
+</ol>
+<img src="manual-images/issue-preview.jpg" alt="Issue preview"><p class="cap">A generated draft (simulated test issue). The red box lists what needs your decision; highlighted [DRAFT TAKE]s are where your opinion goes.</p>
+
+<h2 class="pb">4. Changing things</h2>
+<table><tr><th>To change…</th><th>Do this</th></tr>
+<tr><td>News sources</td><td>Airtable → <b>Sources</b>. Untick <i>active</i> to pause one; add a row to add one (tier 1 = official vendor, 2 = good reporting, 3 = newsletters, 4 = community)</td></tr>
+<tr><td>Your takes</td><td><code>notes/&lt;date&gt;.md</code> or Issues → <i>mohil_notes</i></td></tr>
+<tr><td>Which sections are required, word count, banned hype words</td><td><code>config/newsletter.json</code></td></tr>
+<tr><td>How stories are ranked</td><td><code>config/scoring.json</code> (importance 30%, usefulness 25%, business value 20%, novelty 15%, audience fit 10%)</td></tr>
+<tr><td>What Claude is told</td><td><code>prompts/*.md</code></td></tr>
+<tr><td>Spending cap</td><td>Claude Console → Spend limits → <b>Newsletter</b> workspace ($25/month now)</td></tr></table>
+<img src="manual-images/airtable-sources.jpg" alt="Airtable Sources"><p class="cap">Airtable → Sources: the news sources and their trust tier. Edits here take effect on the next run.</p>
+<img src="manual-images/airtable-stories.jpg" alt="Airtable Stories"><p class="cap">Airtable → Stories: every candidate story with its date and scores. The weekly issue picks from here.</p>
+
+<h2 class="pb">5. The moving parts</h2>
+<table><tr><th>Part</th><th>Where</th><th>Job</th></tr>
+<tr><td>Pipeline</td><td>background service on this Mac</td><td>Does the actual work: feeds, Claude calls, gate, beehiiv draft, alerts</td></tr>
+<tr><td>n8n</td><td><code>http://localhost:5678</code> (login in <code>.env</code>)</td><td>Runs each workflow, waits for the weekly issue, alerts if it fails</td></tr>
+<tr><td>Scheduler</td><td>checks every 5 minutes</td><td>Decides when you're at the Mac and free</td></tr>
+<tr><td>Airtable</td><td>your "AI Operator Weekly" base</td><td>The database you can see and edit</td></tr>
+<tr><td>Claude</td><td>Console, Newsletter workspace</td><td>Scout, researcher, writer, fact-checker</td></tr>
+<tr><td>beehiiv</td><td>your publication</td><td>Receives drafts only</td></tr></table>
+<img src="manual-images/n8n-workflows.jpg" alt="n8n workflows"><p class="cap">n8n: the four workflows. "Published" means switched on.</p>
+<img src="manual-images/n8n-weekly.jpg" alt="n8n weekly workflow"><p class="cap">The weekly workflow: start the issue, check every 10 minutes, alert if it failed or was lost.</p>
+
+<h2 class="pb">6. Alerts and what to do</h2>
+<table><tr><th>You see</th><th>Means</th><th>Do</th></tr>
+<tr><td>Draft ready for review</td><td>Issue passed every check</td><td>Review and send (section 3)</td></tr>
+<tr><td>BLOCKED by the quality gate</td><td>A real problem: missing source, stale price, missing section</td><td>Read the listed reasons. Fix by hand, or ask for a rerun once fixed</td></tr>
+<tr><td>Run failed</td><td>A service or Claude answer failed; the work so far is kept</td><td>Check <code>logs/aow.log</code>; see the manual fallback doc</td></tr>
+<tr><td>RSS feeds failed</td><td>Half or more of the feeds are down</td><td>Usually temporary; pause bad ones in Airtable → Sources</td></tr></table>
+<p>Alerts arrive as a Mac notification now, and by email once the Gmail app password is added.</p>
+
+<h3>Health check and controls (Terminal)</h3>
+<table><tr><th>Do</th><th>Type</th></tr>
+<tr><td>Is everything running?</td><td><code>~/Operator-Weekly-AI-work/repo/deploy/mac/setup.sh --status</code></td></tr>
+<tr><td>Turn the paid Claude steps ON</td><td><code>~/Operator-Weekly-AI-work/repo/deploy/mac/setup.sh --paid</code></td></tr>
+<tr><td>Turn them OFF (free collection only)</td><td><code>~/Operator-Weekly-AI-work/repo/deploy/mac/setup.sh</code></td></tr>
+<tr><td>Add or change a key/password (hidden typing)</td><td><code>~/Operator-Weekly-AI-work/repo/deploy/mac/set-secrets.sh</code></td></tr></table>
+
+<h2 class="pb">7. Status at handoff (brief, Appendix B)</h2>
+<p><span class="ok">Live</span> = proven against the real service. <span class="part">Simulated</span> = proven with fake services in the test suite, not yet live. <span class="no">Not done</span>.</p>
+<table><tr><th>Item</th><th>Status</th><th>Evidence</th></tr>
+<tr><td>Source registry created</td><td class="ok">Live</td><td>32 sources in Airtable; 15/15 feeds read on Nov 5 (2 bot-blocked feeds moved to web search)</td></tr>
+<tr><td>Airtable schema built</td><td class="ok">Live</td><td>10 tables in Mohil's base</td></tr>
+<tr><td>Daily Scout tested</td><td class="ok">Live</td><td>Nov 5: 18 stories saved, 0 rejected (after fixing a category bug)</td></tr>
+<tr><td>Dedupe works</td><td class="ok">Live + tests</td><td>0 duplicates across repeated runs; duplicate test passes</td></tr>
+<tr><td>Scoring rubric</td><td class="ok">Live</td><td>Scores table, weights in config</td></tr>
+<tr><td>Deep research verifies primary sources</td><td class="ok">Live</td><td>Nov 5 run dropped evidence not from vendors' own pricing pages</td></tr>
+<tr><td>Official pricing refresh</td><td class="ok">Live + tests</td><td>Pricing research ran live; stale-price test passes</td></tr>
+<tr><td>Writer follows locked format</td><td class="part">Simulated</td><td>Live writer answer was lost to a parsing bug, now fixed and tested; no live rerun (spending paused)</td></tr>
+<tr><td>Fact-checker blocks unsupported claims</td><td class="part">Simulated</td><td>Simulated run: blocked a false claim, passed after the fix</td></tr>
+<tr><td>beehiiv draft creation</td><td class="part">Simulated</td><td>Waiting for beehiiv sign-in</td></tr>
+<tr><td>No publish/confirmed path</td><td class="ok">Tests</td><td>Draft-only payloads; send endpoints refused</td></tr>
+<tr><td>Preview/post ID saved</td><td class="part">Simulated</td><td>Saved in simulated run</td></tr>
+<tr><td>Analytics pull</td><td class="part">Simulated</td><td>Live run correctly skipped (no beehiiv yet)</td></tr>
+<tr><td>Error alerts</td><td class="ok">Live</td><td>Mac notifications + n8n failure alert fired on Nov 5; email waits for app password</td></tr>
+<tr><td>API/search budget logging</td><td class="ok">Live</td><td>Per-run estimates; $25 cap in the Console</td></tr>
+<tr><td>README</td><td class="ok">Done</td><td>Includes "Running on Mohil's Mac"</td></tr>
+<tr><td>Loom walkthrough</td><td class="no">Not done</td><td>Needs a person to record; script in docs/WALKTHROUGH.md</td></tr>
+<tr><td>Live draft reviewed by Mohil</td><td class="no">Not done</td><td>Needs one live weekly run + beehiiv</td></tr></table>
+</body></html>

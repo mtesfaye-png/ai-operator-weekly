@@ -13,10 +13,28 @@ Daily 10:00am    Analytics: once an issue is sent, pull stats → Performance �
 
 No npm dependencies. Node 20+ only.
 
-**Current stage (free, $0):** RSS-only collection into the Airtable Free base, scheduled by n8n Community Edition
-on a Windows PC with Docker Desktop. See [docs/WINDOWS_LOCAL_SETUP.md](docs/WINDOWS_LOCAL_SETUP.md), and
-[docs/RUNBOOK.md](docs/RUNBOOK.md) for every remaining step to the end of the project. The paid
-Claude pipelines below stay off until Claude API access is approved.
+## How it runs today: free, $0 a week
+
+This repo (`mtesfaye-png/ai-operator-weekly`) is the one shared home for Manuel and Mohil.
+
+| When | What | Where | Cost |
+|---|---|---|---|
+| Every day, 12:17 UTC | **RSS collect**: public feeds → dedupe → label → Airtable | GitHub Actions: `rss-collect.yml` | $0 |
+| Saturday, 13:40 UTC | **Free issue**: ranks the week's articles and writes a draft with no AI → commits it to `issues/<date>/` | GitHub Actions: `weekly-free-issue.yml` | $0 |
+| When you want it | **Full written issue**: type `/write-issue` in Claude Code in this folder. It researches, writes and checks the issue | Your own Claude plan (no API credits) | $0 extra |
+| By hand | Paste `beehiiv-body.html` into a new beehiiv post and keep it as a **draft**. Publish yourself | beehiiv | $0 |
+
+**The free issue** (`node src/cli.js free-issue`) picks the five biggest stories with plain arithmetic: source tier, how
+recent it is, how many outlets ran it, and business keywords. It groups the same story from different outlets, leaves
+out gaming and other off-topic posts, and adds Tools / Pricing / Models / Business sections. It never writes an
+opinion: every "why it matters", Tool of the Week and Workflow of the Week is a **[DRAFT TAKE]** box for the editor.
+Tune it in `config/digest.json` (any key of `DEFAULTS` in `lib/digest.js`).
+
+**Check an issue before beehiiv:** `node scripts/check-issue.js issues/<date>/written/issue.md` (add `--final` after
+your edits: it then also blocks leftover [DRAFT TAKE] lines and the editor box).
+
+The paid Claude pipeline (daily scout + weekly research/writing/fact-check, below) is built and live-tested but
+**switched off** to save credits. Turning it on is a deliberate step: `deploy/mac/setup.sh --paid` on the Mac.
 
 ## Go live in five steps
 
@@ -53,7 +71,10 @@ Try it with no keys and no cost: `npm run demo` runs daily → weekly → analyt
 | `node src/cli.js airtable-check` | Read back the Articles mirrored to Airtable and check for missing or duplicate rows (1 call per 100 rows) |
 | `node src/cli.js airtable-status` | Real record count across all tables and this month's API calls vs the Free limits; marks rows you deleted in Airtable as archived so they free up the budget (≈10 calls) |
 | `npm start` | Trigger server for n8n: `POST /run/{collect,daily,weekly,analytics}` (only those in `AOW_SERVER_WORKFLOWS`, default `collect`; collect accepts `{"days":3,"max_sync":10,"wait":true}`), `GET /runs/:id`, `GET /health`. Listens on 127.0.0.1 unless `HOST` is set |
-| `npm test` | 80 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection, Stage 3 trigger server / lock / repeated-run / archive / deployment checks |
+| `node src/cli.js free-issue [--date …] [--out issues]` | The weekly draft with no AI and no paid calls (see above) |
+| `node scripts/check-issue.js <issue.md> [--final]` | Rules check on a finished issue: required sections, banned claims, prices with a checked date, sources |
+| `node scripts/copy-airtable.js [--write]` | One-time copy of one base into another (dry run without `--write`) |
+| `npm test` | 110 tests: brief §13 acceptance tests, full simulated cycles on local files and on Airtable, n8n checks, review, stabilization and pricing-source regressions, RSS-only collection, Stage 3 trigger server / lock / repeated-run / archive / deployment checks |
 
 Exit codes: `0` ok · `2` issue blocked by the quality gate · `1` error.
 
@@ -129,19 +150,64 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 - **Failures keep the work.** Research, draft and fact check are saved before beehiiv is called. Any failure
   alerts Slack and leaves the issue ready to paste.
 
+## Running on Mohil's Mac (current setup)
+
+Everything runs on Mohil's Mac as background services (launchd). No Docker, no server, and nothing is
+reachable from outside the Mac: every service listens on 127.0.0.1 only.
+
+| Service | What it does |
+|---|---|
+| `com.aiopweekly.aow` | The pipeline's trigger server (`src/server.js`) on port 8787. Runs collect / daily / weekly / analytics when n8n asks, and sends alerts |
+| `com.aiopweekly.n8n` | n8n 2.44.7 at http://localhost:5678 (login in `.env`: `N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Runs each workflow, polls the weekly run, alerts on failure |
+| `com.aiopweekly.gate` | Every 5 minutes, `deploy/mac/gate.js` decides whether to start the day's jobs (below) |
+| `com.aiopweekly.maintain` | Sundays 9am (or the next wake): backup, Airtable clean-up, log rotation (`deploy/mac/maintain.js`) |
+
+**Now that GitHub Actions does the daily collect, the Mac is optional.** It's set to `AOW_SERVER_WORKFLOWS=none`, so
+it starts nothing on its own and doesn't double the Airtable API calls. It still runs the Sunday backup.
+
+**When things run (if switched on).** Not at fixed times: a sleeping Mac would miss them. A job starts once the Mac has been
+used for **30 minutes in a row** (keyboard/mouse within the last 5 minutes), **no meeting is on** (any microphone
+in use, or a Zoom meeting), and it's after 6am. Order: free RSS collect → daily scout → weekly issue (Saturday, or
+the first qualifying day after) → analytics. Each runs once per day (weekly once per week).
+`node deploy/mac/gate.js --status` shows the active minutes, meeting state and what's due.
+
+**Commands**
+
+| Do | Run |
+|---|---|
+| Health check | `deploy/mac/setup.sh --status` |
+| Enter or replace keys (hidden input) | `deploy/mac/set-secrets.sh` |
+| Reinstall / update services (safe to repeat) | `deploy/mac/setup.sh --paid` (`--paid` keeps the Claude workflows on; without it only the free collect runs) |
+| Run a step now, by hand | `node src/cli.js daily` · `node src/cli.js weekly` |
+| Backup now | `node deploy/mac/maintain.js --dry-run` (backs up; removes nothing) |
+
+Logs: `~/Operator-Weekly-AI-work/logs/` (`aow.log`, `n8n.log`, `scheduler.log`, `maintenance.log`).
+Backups: `~/Operator-Weekly-AI-work/backups/` (last 8). Keys: `.env` (mode 600, never committed).
+
+**Costs.** Claude: about $0.30 a day for the scout plus about $3–8 for each weekly issue, capped at $25 a month
+by the Claude Console's **Newsletter** workspace. Airtable Free, n8n Community Edition: $0.
+
+**Alerts** go to email (Gmail SMTP, needs `SMTP_PASS`: a Gmail app password) and to a Mac notification.
+
 ## Manual fallback
 
-If the Claude API is down: run each prompt in `prompts/` by hand in Claude and paste results into Airtable.
-If beehiiv is down or not on a supporting plan: paste `out/<date>/issue.html` into a new beehiiv post.
-Delete the EDITOR REVIEW REQUIRED box (if any) before sending.
+See [`docs/MANUAL_FALLBACK.md`](docs/MANUAL_FALLBACK.md). Short version: if the Claude API is down, run each
+prompt in `prompts/` by hand in Claude and paste results into Airtable. If beehiiv is down or not on a supporting
+plan, paste `out/<date>/issue.html` into a new beehiiv post. Delete the EDITOR REVIEW REQUIRED box (if any)
+before sending.
 
 ## First live test
 
 See [`docs/FIRST_LIVE_TEST.md`](docs/FIRST_LIVE_TEST.md): Anthropic only, local storage, a lowered app-side cap
 (`AOW_MAX_USD`), and why a provider-side spend limit is still needed.
 
-## Not yet verified against live services
+## What has been verified live (2026-11-05)
 
-Every path is tested against simulated APIs that follow the official docs, but no live run has happened yet:
-the first `npm run daily` and `npm run weekly` with real keys are that check. The RSS URLs in `sources.csv` are a
-starting list; the daily run reports any that fail.
+Live on Mohil's Mac: RSS collect into Airtable (15/15 feeds), the daily scout with real Claude (18 stories, 0
+rejected), story selection, deep research with official-pricing enforcement, n8n orchestration and its failure
+alerts, the at-the-Mac scheduler and meeting check, backups. The live runs found and fixed three real bugs
+(Scout categories, research labels, writer JSON parsing).
+
+Not yet live: a weekly run all the way to the gate (spending was paused after the parsing fix), beehiiv draft
+creation (beehiiv not connected yet), email alerts (needs a Gmail app password). All three pass in the simulated
+end-to-end run (`npm run demo`). Status per brief item: `docs/AI_Operator_Weekly_Operating_Manual.pdf`, section 7.

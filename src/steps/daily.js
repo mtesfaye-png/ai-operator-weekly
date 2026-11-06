@@ -27,7 +27,7 @@ async function daily({ cfg, fetchImpl, store, budget, log, now = new Date() }) {
     cfg, fetchImpl, budget, window, sources, seedItems: items, learning,
     existingHeadlines: existing.filter((s) => s.status !== 'duplicate').map((s) => `${s.event_date} ${s.headline}`).slice(0, 80),
   });
-  if (rejected.length) log.warn(`Scout returned ${rejected.length} malformed stories: ${rejected.map((r) => r.story_id).join(', ')}`);
+  if (rejected.length) log.warn(`Scout returned ${rejected.length} malformed stories: ${rejected.map((r) => `${r.story_id} (${String(r.reason).slice(0, 160)})`).join('; ')}`);
 
   const { kept, dropped } = filterWindow(stories, window);
   if (dropped.length) log.info(`Dropped ${dropped.length} out-of-window: ${dropped.map((d) => `${d.story_id} (${d.reason})`).join('; ')}`);

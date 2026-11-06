@@ -95,4 +95,4 @@ if (require.main === module) {
   console.log(`Wrote ${path.join(dir, 'issue.html')} and ${path.join(dir, 'beehiiv-body.html')}`);
 }
 
-module.exports = { render, inline };
+module.exports = { render, inline, page };
