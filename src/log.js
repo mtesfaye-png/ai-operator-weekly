@@ -1,4 +1,7 @@
-// Run logger + alerts. Every run writes a Run Log record; failures also alert Slack (or stderr).
+// Run logger + alerts. Every run writes a Run Log record; failures also alert by email, Slack and/or a
+// macOS notification (whichever are configured), and always to stderr.
+
+const { makeNotifier } = require('./notify');
 
 function makeLogger({ store, workflow, runId, alertFn }) {
   const started = new Date().toISOString();
@@ -19,13 +22,8 @@ function makeLogger({ store, workflow, runId, alertFn }) {
   };
 }
 
-function makeAlert(cfg, fetchImpl) {
-  return async (text) => {
-    if (!cfg.alerts.slackWebhook) { console.error(`ALERT: ${text}`); return; }
-    try {
-      await fetchImpl(cfg.alerts.slackWebhook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text }) });
-    } catch (e) { console.error(`ALERT (Slack failed: ${e.message}): ${text}`); }
-  };
+function makeAlert(cfg, fetchImpl, deps) {
+  return makeNotifier(cfg, fetchImpl, deps);
 }
 
 module.exports = { makeLogger, makeAlert };

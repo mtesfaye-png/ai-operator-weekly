@@ -7,6 +7,8 @@
 //        -> with "wait": true, 200 with the finished run's result instead (collect only).
 //   GET  /runs/:run_id   -> status/result of a run
 //   GET  /health         -> { ok: true }
+//   POST /alert  { "text": "..." } -> sends an alert through the configured channels (email/Slack/macOS);
+//        lets n8n's own failure branches reach Mohil the same way the pipeline's alerts do.
 // Only the workflows in AOW_SERVER_WORKFLOWS can be started (default: collect, the free RSS-only run).
 // The paid ones (daily, weekly, analytics) must be listed there explicitly. Listens on 127.0.0.1 unless
 // HOST is set (the Docker image sets 0.0.0.0 inside the container; compose publishes it to localhost only).
@@ -16,6 +18,7 @@ const http = require('http');
 const crypto = require('crypto');
 const { load } = require('./config');
 const { runWorkflow: defaultRun, WORKFLOWS } = require('./run');
+const { makeNotifier } = require('./notify');
 
 const MAX_BODY = 10000;
 
@@ -36,7 +39,7 @@ function parseOptions(workflow, body) {
   return [null, { ...opts, lookbackDays: body.days, maxSync: body.max_sync }];
 }
 
-function createServer({ cfg = load(), runWorkflow = defaultRun, allowed = allowedWorkflows() } = {}) {
+function createServer({ cfg = load(), runWorkflow = defaultRun, allowed = allowedWorkflows(), alert = makeNotifier(cfg) } = {}) {
   if (!cfg.server.token) throw new Error('Set AOW_TRIGGER_TOKEN before starting the server.');
   const runs = new Map();     // run_id -> { status, workflow, started_at, result }
   const active = new Set();   // workflows currently running
@@ -61,6 +64,17 @@ function createServer({ cfg = load(), runWorkflow = defaultRun, allowed = allowe
     const url = new URL(req.url, 'http://localhost');
     if (req.method === 'GET' && url.pathname === '/health') return send(res, 200, { ok: true });
     if (!authed(req)) return send(res, 401, { error: 'Missing or wrong bearer token' });
+
+    if (req.method === 'POST' && url.pathname === '/alert') {
+      const raw = await readBody(req).catch(() => null);
+      if (raw === null) return send(res, 413, { error: 'Body too large (at most 10 kB)' });
+      let body;
+      try { body = JSON.parse(raw); } catch { return send(res, 400, { error: 'Body must be JSON' }); }
+      const text = String((body && body.text) || '').trim();
+      if (!text) return send(res, 400, { error: 'text is required' });
+      const channels = await alert(text.startsWith('[AI Operator Weekly') ? text : `[AI Operator Weekly · n8n] ${text}`);
+      return send(res, 200, { ok: true, channels });
+    }
 
     const runMatch = url.pathname.match(/^\/run\/(\w+)$/);
     if (req.method === 'POST' && runMatch) {

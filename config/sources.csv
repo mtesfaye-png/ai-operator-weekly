@@ -15,7 +15,7 @@ Financial Times Tech,ft.com,2,business,,true,Paywalled; regulation and enterpris
 Wall Street Journal Tech,wsj.com,2,business,,true,Paywalled
 TechCrunch AI,techcrunch.com,2,tools,https://techcrunch.com/category/artificial-intelligence/feed/,true,Funding and startup launches
 The Verge AI,theverge.com,2,tools,https://www.theverge.com/rss/ai-artificial-intelligence/index.xml,true,Consumer product context
-VentureBeat AI,venturebeat.com,2,enterprise,https://venturebeat.com/category/ai/feed/,true,Enterprise adoption
+VentureBeat AI,venturebeat.com,2,enterprise,,true,Enterprise adoption. RSS blocks automated readers (HTTP 429 bot challenge); found via web search instead
 CNBC Tech,cnbc.com,2,business,,true,Earnings and market context
 The Rundown AI,therundown.ai,3,discovery,,true,Discovery only - never copy framing; trace to source
 Superhuman AI,superhuman.ai,3,discovery,,true,Discovery only
@@ -27,4 +27,7 @@ Latent Space,latent.space,3,discovery,https://latent.space/feed,true,Discovery o
 Hacker News,news.ycombinator.com,4,community,https://hnrss.org/frontpage?q=AI+OR+LLM+OR+GPT+OR+Claude,true,Signal only - label anecdotal
 Product Hunt AI,producthunt.com,4,community,,true,Signal only
 GitHub Trending,github.com,4,community,,true,Signal only; check stars velocity not totals
-r/LocalLLaMA,reddit.com,4,community,https://www.reddit.com/r/LocalLLaMA/.rss,true,Signal only - open model practitioner chatter
+r/LocalLLaMA,reddit.com,4,community,,true,Signal only - open model practitioner chatter. Reddit refuses automated RSS (403/429); found via web search instead
+Ars Technica AI,arstechnica.com,2,tools,https://arstechnica.com/ai/feed/,true,Independent reporting on AI products and policy
+MIT Technology Review AI,technologyreview.com,2,enterprise,https://www.technologyreview.com/topic/artificial-intelligence/feed,true,Independent context on adoption and research
+The Decoder,the-decoder.com,3,frontier_models,https://the-decoder.com/feed/,true,Specialist discovery; trace claims to the original source
