@@ -156,3 +156,13 @@ test('FREE ISSUE: everyday words do not join unrelated stories; one source gets 
   const airbnb = d.top.find((x) => /Airbnb/.test(x.title));
   assert.ok(airbnb && airbnb.also.length === 1, 'the same story from two outlets is still grouped');
 });
+
+test('FREE ISSUE: marketing series, roundups and videos stay out of the top 5', () => {
+  const d = digest.build([
+    art({ title: 'Into the Omniverse: developers build with AI agents', source: 'NVIDIA Blog', source_category: 'infrastructure' }),
+    art({ title: 'The latest AI news we announced in October', source: 'Google', source_category: 'frontier_models' }),
+    art({ title: 'Open source AI is booming', source: 'TechCrunch', url: 'https://techcrunch.com/video/open-source-ai', source_category: 'business' }),
+    art({ title: 'Copilot agent mode ships to all plans', source: 'GitHub Changelog' }),
+  ], { issueDate: '2026-11-06' });
+  assert.deepEqual(d.top.map((x) => x.source), ['GitHub Changelog']);
+});
