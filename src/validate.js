@@ -69,4 +69,44 @@ function loadSchema(name) {
   return cache[name];
 }
 
-module.exports = { validate, loadSchema };
+// Lists every enum in a schema as "path: a | b | c", so prompts can state the allowed values exactly.
+function enumHints(schema, at = '$', out = []) {
+  if (!schema || typeof schema !== 'object') return out;
+  if (schema.enum) out.push(`${at}: ${schema.enum.join(' | ')}`);
+  if (schema.properties) for (const [k, sub] of Object.entries(schema.properties)) enumHints(sub, `${at}.${k}`, out);
+  if (schema.items) enumHints(schema.items, `${at}[]`, out);
+  return [...new Set(out)];
+}
+
+// Repairs harmless model slips before validation, never content:
+//  - enum near-misses: case, spaces/hyphens ("Pricing Change" -> "pricing_change"); an unknown label becomes
+//    "other" ONLY if the enum has "other" (pure classification fields). Status/verdict enums have no "other",
+//    so a wrong value there still fails validation.
+//  - unknown keys where the schema says additionalProperties:false are dropped.
+function coerce(schema, v) {
+  if (!schema || typeof schema !== 'object') return v;
+  if (schema.enum && typeof v === 'string' && !schema.enum.includes(v)) {
+    const key = v.trim().toLowerCase().replace(/[\s-]+/g, '_');
+    const hit = schema.enum.find((e) => typeof e === 'string' && e.toLowerCase() === key);
+    if (hit !== undefined) return hit;
+    // A label containing an allowed id ("pricing_update", "funding_round") maps to it. Anything about price
+    // or cost is always "pricing", so it can never slip past the official-pricing rules as "other".
+    if (schema.enum.includes('pricing') && /pric|cost|fee|plan_change|subscription/.test(key)) return 'pricing';
+    const part = schema.enum.find((e) => typeof e === 'string' && e.length >= 4 && e !== 'other' && key.includes(e));
+    if (part !== undefined) return part;
+    if (schema.enum.includes('other')) return 'other';
+    return v;
+  }
+  if (Array.isArray(v) && schema.items) return v.map((x) => coerce(schema.items, x));
+  if (v && typeof v === 'object' && !Array.isArray(v) && schema.properties) {
+    const out = {};
+    for (const [k, x] of Object.entries(v)) {
+      if (schema.properties[k]) out[k] = coerce(schema.properties[k], x);
+      else if (schema.additionalProperties !== false) out[k] = x;
+    }
+    return out;
+  }
+  return v;
+}
+
+module.exports = { validate, loadSchema, enumHints, coerce };

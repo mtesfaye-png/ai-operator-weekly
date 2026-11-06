@@ -68,7 +68,7 @@ function idleSeconds() {
 
 function inMeeting() {
   const reasons = [];
-  try { if (execFileSync(path.join(__dirname, 'mic-in-use'), { encoding: 'utf8' }).trim() === '1') reasons.push('microphone in use'); } catch { /* helper missing: ignore */ }
+  try { if (execFileSync(process.env.AOW_MIC_HELPER || path.join(__dirname, 'mic-in-use'), { encoding: 'utf8' }).trim() === '1') reasons.push('microphone in use'); } catch { /* helper missing: ignore */ }
   try { execFileSync('/usr/bin/pgrep', ['-x', 'CptHost'], { stdio: 'ignore' }); reasons.push('Zoom meeting'); } catch { /* not running */ }
   return reasons;
 }

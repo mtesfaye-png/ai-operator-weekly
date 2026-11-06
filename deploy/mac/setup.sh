@@ -23,9 +23,11 @@ UID_="$(id -u)"
 ALERT_EMAIL="${ALERT_EMAIL:-guptapartnersteam@gmail.com}"
 
 status() {
-  for l in com.aiopweekly.aow com.aiopweekly.n8n com.aiopweekly.gate; do
+  for l in com.aiopweekly.aow com.aiopweekly.n8n com.aiopweekly.gate com.aiopweekly.maintain; do
     if launchctl print "gui/$UID_/$l" >/dev/null 2>&1; then
-      echo "✔ $l: $(launchctl print "gui/$UID_/$l" | awk '/state =/{print $3; exit}')"
+      st="$(launchctl print "gui/$UID_/$l" | awk '/state =/{print $3; exit}')"
+      case "$l:$st" in *gate:not|*maintain:not) st="scheduled (runs on its timer)";; esac
+      echo "✔ $l: $st"
     else echo "✘ $l: not installed"; fi
   done
   curl -fsS http://127.0.0.1:8787/health >/dev/null 2>&1 && echo "✔ AOW service answers on http://127.0.0.1:8787" || echo "✘ AOW service not answering"
@@ -115,11 +117,24 @@ cat > "$AGENTS/com.aiopweekly.gate.plist" <<PLIST
   <key>StandardErrorPath</key><string>$LOGS/scheduler.log</string>
 </dict></plist>
 PLIST
-echo "✔ services: AOW (pipeline), n8n (orchestration), scheduler (every 5 min: 30 min active + no meeting)"
+cat > "$AGENTS/com.aiopweekly.maintain.plist" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.aiopweekly.maintain</string>
+  <key>ProgramArguments</key><array><string>$NODE</string><string>$REPO/deploy/mac/maintain.js</string></array>
+  <key>WorkingDirectory</key><string>$REPO</string>
+  <key>StartCalendarInterval</key><dict><key>Weekday</key><integer>0</integer><key>Hour</key><integer>9</integer><key>Minute</key><integer>0</integer></dict>
+  <key>StandardOutPath</key><string>$LOGS/maintenance.log</string>
+  <key>StandardErrorPath</key><string>$LOGS/maintenance.log</string>
+</dict></plist>
+PLIST
+echo "✔ services: AOW (pipeline), n8n (orchestration), scheduler (every 5 min: 30 min active + no meeting), weekly backup + cleanup (Sun 9am or next wake)"
 /usr/bin/swiftc -O "$REPO/deploy/mac/bin-src/mic-in-use.swift" -o "$REPO/deploy/mac/mic-in-use" 2>/dev/null && echo "✔ meeting check built (microphone in use)" || echo "! could not build the meeting check (needs Xcode command line tools); Zoom detection still works"
 
 echo "== 3. n8n workflows + credential =="
 launchctl bootout "gui/$UID_/com.aiopweekly.n8n" 2>/dev/null || true
+for i in $(seq 1 30); do launchctl print "gui/$UID_/com.aiopweekly.n8n" >/dev/null 2>&1 || break; sleep 0.5; done
 IMPORT="$(mktemp -d)"; trap 'rm -rf "$IMPORT"' EXIT
 AOW_TRIGGER_TOKEN="$TOKEN" "$NODE" deploy/mac/prepare-n8n.js "$IMPORT" >/dev/null
 n8n() { env PATH="$NODE24_BIN:$PATH" N8N_USER_FOLDER="$N8N_DATA" GENERIC_TIMEZONE=America/New_York N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true "$N8N_BIN" "$@"; }
@@ -138,9 +153,14 @@ else
 fi
 
 echo "== 4. Start =="
-for l in com.aiopweekly.aow com.aiopweekly.n8n com.aiopweekly.gate; do
+for l in com.aiopweekly.aow com.aiopweekly.n8n com.aiopweekly.gate com.aiopweekly.maintain; do
+  [ "$l" = com.aiopweekly.aow ] && [ "${AOW_KEEP_RUNNING:-}" = 1 ] && continue
   launchctl bootout "gui/$UID_/$l" 2>/dev/null || true
-  launchctl bootstrap "gui/$UID_" "$AGENTS/$l.plist"
+  # bootout returns before the service is fully gone; starting too early fails with "Input/output error".
+  for i in $(seq 1 20); do launchctl print "gui/$UID_/$l" >/dev/null 2>&1 || break; sleep 0.5; done
+  ok=0
+  for i in 1 2 3 4 5; do launchctl bootstrap "gui/$UID_" "$AGENTS/$l.plist" 2>/dev/null && { ok=1; break; }; sleep 2; done
+  [ "$ok" = 1 ] || echo "✘ could not start $l (try: launchctl bootstrap gui/$UID_ $AGENTS/$l.plist)"
 done
 for i in $(seq 1 60); do curl -fsS http://127.0.0.1:5678/healthz >/dev/null 2>&1 && break; sleep 2; done
 status

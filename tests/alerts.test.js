@@ -140,3 +140,31 @@ test('SCOUT: near-miss categories are mapped to the allowed ids, unknown ones ar
   assert.equal(normalizeCategory('Chips', allowed), 'infrastructure');
   assert.equal(normalizeCategory('astrology', allowed), 'astrology');
 });
+
+test('JSON REPAIR: near-miss enum labels are fixed; price-like labels are always "pricing"; statuses are never guessed', () => {
+  const { coerce, validate, loadSchema } = require('../src/validate');
+  const schema = loadSchema('research_packet');
+  const claim = (claim_type, status = 'confirmed') => ({ claim_type, status });
+  const claimSchema = schema.properties.stories.items.properties.claims.items;
+  assert.equal(coerce(claimSchema, claim('Release')).claim_type, 'release');
+  assert.equal(coerce(claimSchema, claim('price_change')).claim_type, 'pricing');
+  assert.equal(coerce(claimSchema, claim('Pricing Update')).claim_type, 'pricing');
+  assert.equal(coerce(claimSchema, claim('funding_round')).claim_type, 'funding');
+  assert.equal(coerce(claimSchema, claim('acquisition')).claim_type, 'other');
+  assert.equal(coerce(claimSchema, claim('release', 'probably')).status, 'probably'); // no "other": left to fail
+  const fc = loadSchema('fact_check_report');
+  assert.equal(coerce(fc.properties.verdict, 'pass'), 'PASS');
+  assert.equal(coerce(fc.properties.verdict, 'looks fine'), 'looks fine');
+  assert.equal(validate(fc.properties.verdict, 'looks fine').valid, false);
+});
+
+test('JSON: an answer whose strings contain code fences (prompt templates) is still read as the whole object', () => {
+  const { extractJson } = require('../src/claude');
+  const obj = { sections: [{ id: 'workflow', markdown: 'Prompt:\n```\nYou are a support agent. Reply politely.\n```\nHuman review: approve.' }] };
+  const raw = JSON.stringify(obj);
+  assert.deepEqual(extractJson(raw), obj);
+  assert.deepEqual(extractJson('```json\n' + JSON.stringify(obj, null, 2) + '\n```'), obj);
+  assert.deepEqual(extractJson('Here you go:\n' + raw + '\nDone.'), obj);
+  assert.deepEqual(extractJson('Note\n```json\n{"a":1}\n```'), { a: 1 });
+  assert.throws(() => extractJson('no json here'));
+});

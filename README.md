@@ -128,11 +128,48 @@ out/<date>/   issue.md · issue.html · preview.html · research_packet.json · 
 - **Failures keep the work.** Research, draft and fact check are saved before beehiiv is called. Any failure
   alerts Slack and leaves the issue ready to paste.
 
+## Running on Mohil's Mac (current setup)
+
+Everything runs on Mohil's Mac as background services (launchd). No Docker, no server, and nothing is
+reachable from outside the Mac: every service listens on 127.0.0.1 only.
+
+| Service | What it does |
+|---|---|
+| `com.aiopweekly.aow` | The pipeline's trigger server (`src/server.js`) on port 8787. Runs collect / daily / weekly / analytics when n8n asks, and sends alerts |
+| `com.aiopweekly.n8n` | n8n 2.44.7 at http://localhost:5678 (login in `.env`: `N8N_OWNER_EMAIL` / `N8N_OWNER_PASSWORD`). Runs each workflow, polls the weekly run, alerts on failure |
+| `com.aiopweekly.gate` | Every 5 minutes, `deploy/mac/gate.js` decides whether to start the day's jobs (below) |
+| `com.aiopweekly.maintain` | Sundays 9am (or the next wake): backup, Airtable clean-up, log rotation (`deploy/mac/maintain.js`) |
+
+**When things run.** Not at fixed times: a sleeping Mac would miss them. A job starts once the Mac has been
+used for **30 minutes in a row** (keyboard/mouse within the last 5 minutes), **no meeting is on** (any microphone
+in use, or a Zoom meeting), and it's after 6am. Order: free RSS collect → daily scout → weekly issue (Saturday, or
+the first qualifying day after) → analytics. Each runs once per day (weekly once per week).
+`node deploy/mac/gate.js --status` shows the active minutes, meeting state and what's due.
+
+**Commands**
+
+| Do | Run |
+|---|---|
+| Health check | `deploy/mac/setup.sh --status` |
+| Enter or replace keys (hidden input) | `deploy/mac/set-secrets.sh` |
+| Reinstall / update services (safe to repeat) | `deploy/mac/setup.sh --paid` (`--paid` keeps the Claude workflows on; without it only the free collect runs) |
+| Run a step now, by hand | `node src/cli.js daily` · `node src/cli.js weekly` |
+| Backup now | `node deploy/mac/maintain.js --dry-run` (backs up; removes nothing) |
+
+Logs: `~/Operator-Weekly-AI-work/logs/` (`aow.log`, `n8n.log`, `scheduler.log`, `maintenance.log`).
+Backups: `~/Operator-Weekly-AI-work/backups/` (last 8). Keys: `.env` (mode 600, never committed).
+
+**Costs.** Claude: about $0.30 a day for the scout plus about $3–8 for each weekly issue, capped at $25 a month
+by the Claude Console's **Newsletter** workspace. Airtable Free, n8n Community Edition: $0.
+
+**Alerts** go to email (Gmail SMTP, needs `SMTP_PASS`: a Gmail app password) and to a Mac notification.
+
 ## Manual fallback
 
-If the Claude API is down: run each prompt in `prompts/` by hand in Claude and paste results into Airtable.
-If beehiiv is down or not on a supporting plan: paste `out/<date>/issue.html` into a new beehiiv post.
-Delete the EDITOR REVIEW REQUIRED box (if any) before sending.
+See [`docs/MANUAL_FALLBACK.md`](docs/MANUAL_FALLBACK.md). Short version: if the Claude API is down, run each
+prompt in `prompts/` by hand in Claude and paste results into Airtable. If beehiiv is down or not on a supporting
+plan, paste `out/<date>/issue.html` into a new beehiiv post. Delete the EDITOR REVIEW REQUIRED box (if any)
+before sending.
 
 ## First live test
 
