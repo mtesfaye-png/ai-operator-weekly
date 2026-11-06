@@ -44,30 +44,18 @@ collection keeps running on GitHub Actions exactly as you built it, and it's now
 
 1. **Share your Airtable base with me.** We're keeping **your** base as the one we both use.
    - Open base `appYiy5hPq7BNDosa` → Share → invite `guptapartnersteam@gmail.com` as **Creator**.
-   - Tell me when it's done. I'll then copy my base's rows into yours (about 150 records, so you'll be around 290
-     of the 1,000 Free limit):
-     ```
-     FROM_AIRTABLE_TOKEN=<Mohil's token> FROM_AIRTABLE_BASE_ID=appUpTOXSaFVY7Ocf \
-     AIRTABLE_TOKEN=<a token that can write your base> AIRTABLE_BASE_ID=appYiy5hPq7BNDosa \
-     node scripts/copy-airtable.js            # check the dry run, then add --write
-     ```
-2. **Check the new workflow once.** Actions → **Weekly free issue** → Run workflow.
-   - It should go green and commit `issues/<today>/`.
-   - If the push step fails, go to Settings → Actions → General → Workflow permissions and allow
-     "Read and write", then run it again.
-3. **Make the repo private** (Settings → General → Danger zone → Change visibility). There are no keys in
-   it, but the drafts and the setup are ours. Private repos still get 2,000 free Actions minutes a month,
-   and each run takes about 1 minute.
-4. **Saturday routine**, starting tomorrow (Nov 7):
-   1. Open `issues/<date>/issue.html`.
-   2. Either fill in the [DRAFT TAKE] lines yourself, or run `/write-issue`.
-   3. Run `check-issue.js --final`.
+   - Tell me when it's done, and I'll copy my rows into yours with `scripts/copy-airtable.js` (about 150 records).
+2. **Saturday routine**, every week:
+   1. Open `issues/<date>/issue.html`. GitHub builds it every Saturday morning.
+   2. Either fill in the [DRAFT TAKE] lines, or run `/write-issue` in Claude Code for the fully written version.
+   3. Run `node scripts/check-issue.js issues/<date>/written/issue.md --final`.
    4. Paste `beehiiv-body.html` into a new beehiiv post and leave it as a **draft**. I review it and press Publish.
-5. **Loom walkthrough.** Record it with the script in `docs/WALKTHROUGH.md`. Use GitHub Actions for the
-   "start" step instead of n8n.
-6. **n8n Cloud.** Let the trial lapse. GitHub Actions does the scheduling, so nothing depends on it.
-7. **Later, only with my OK:** the paid pipeline (`--paid`) and the beehiiv API (it needs beehiiv's Pro plan).
-   Both are built and tested, and both are switched off.
+
+   This week's (Nov 7) is already written: `issues/2026-11-07/written/`. It only needs my takes and the beehiiv paste.
+3. **n8n Cloud:** let the trial run out. GitHub does the scheduling now.
+4. **Later, only with my OK:** the paid AI steps and the beehiiv API (it needs beehiiv's Pro plan).
+
+Already done, so nothing for you here: the new Saturday job has been run on GitHub and works.
 
 ## Rules that still hold
 - Draft only: nothing publishes or sends automatically.
