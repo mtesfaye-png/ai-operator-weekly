@@ -166,3 +166,38 @@ test('FREE ISSUE: marketing series, roundups and videos stay out of the top 5', 
   ], { issueDate: '2026-11-06' });
   assert.deepEqual(d.top.map((x) => x.source), ['GitHub Changelog']);
 });
+
+test('COPY-AIRTABLE: export to a file, import from it, and skip fields the destination lacks even without schema access', async () => {
+  const { main } = require('../scripts/copy-airtable');
+  const { KEYS } = require('../src/store/codec');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aow-copy-'));
+  const file = path.join(dir, 'export.json');
+  const bases = { appFROM00000000001: { Articles: [{ article_id: 'a1', title: 'One', new_field: 'x' }], 'Run Log': [{ run_id: 'r1' }] }, appTO0000000000002: {} };
+  const fakeFetch = async (url, opts = {}) => {
+    const u = new URL(url);
+    if (u.pathname.includes('/meta/')) return { ok: false, status: 403, json: async () => ({}) }; // token without schema scope
+    const [, , base, raw] = u.pathname.split('/');
+    const table = decodeURIComponent(raw);
+    const rows = (bases[base][table] ||= []);
+    if ((opts.method || 'GET') === 'GET') return { ok: true, status: 200, json: async () => ({ records: rows.map((f) => ({ fields: f })) }) };
+    const body = JSON.parse(opts.body);
+    const bad = body.records.flatMap((r) => Object.keys(r.fields)).find((k) => k === 'new_field');
+    if (bad) return { ok: false, status: 422, json: async () => ({ error: { type: 'UNKNOWN_FIELD_NAME', message: `Unknown field name: "${bad}"` } }) };
+    for (const r of body.records) { const k = KEYS[table]; const i = rows.findIndex((x) => x[k] === r.fields[k]); if (i >= 0) rows[i] = r.fields; else rows.push(r.fields); }
+    return { ok: true, status: 200, json: async () => ({ records: [] }) };
+  };
+  const quiet = () => {};
+  await main({ env: { FROM_AIRTABLE_BASE_ID: 'appFROM00000000001', AIRTABLE_TOKEN: 'patT', AOW_TEST_NO_THROTTLE: '1' }, argv: ['--export', file], fetchImpl: fakeFetch, log: quiet });
+  assert.equal('Run Log' in JSON.parse(fs.readFileSync(file, 'utf8')).tables, false, 'run history is not copied');
+  await main({ env: { AIRTABLE_TOKEN: 'patT', AIRTABLE_BASE_ID: 'appTO0000000000002', AOW_TEST_NO_THROTTLE: '1' }, argv: ['--from-file', file, '--write'], fetchImpl: fakeFetch, log: quiet });
+  assert.deepEqual(bases.appTO0000000000002.Articles, [{ article_id: 'a1', title: 'One' }]);
+});
+
+test('ACTIONS: the one-time Airtable import is manual, needs IMPORT typed, and sees no paid key', () => {
+  const code = fs.readFileSync(path.join(__dirname, '..', '.github', 'workflows', 'import-airtable.yml'), 'utf8').replace(/^\s*#.*$/gm, '');
+  assert.equal(/schedule:|cron:/.test(code), false);
+  assert.match(code, /"IMPORT"/);
+  assert.equal(/ANTHROPIC_|BEEHIIV_/.test(code), false);
+  assert.deepEqual([...code.matchAll(/secrets\.(\w+)/g)].map((m) => m[1]).sort(), ['AIRTABLE_BASE_ID', 'AIRTABLE_TOKEN']);
+  assert.equal(/\$\{\{\s*inputs\.\w+\s*\}\}/.test(code.split('steps:')[1]), false);
+});

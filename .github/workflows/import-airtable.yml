@@ -1,0 +1,55 @@
+# One-time import: loads a base export (airtable/import/*.json, made with `copy-airtable.js --export`) into the
+# Airtable base in this repo's secrets. Manual only. Upserts on each table's key, so re-running adds nothing;
+# never deletes. After a successful import the export file is removed from the repo.
+
+name: Import Airtable export (one-time)
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Export file in airtable/import/"
+        required: true
+        default: "airtable/import/mohil-base-2026-11-06.json"
+      confirm:
+        description: "Type exactly: IMPORT"
+        required: true
+
+permissions:
+  contents: write # only to remove the export file after it's imported
+
+concurrency:
+  group: import-airtable
+  cancel-in-progress: false
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+      AIRTABLE_BASE_ID: ${{ secrets.AIRTABLE_BASE_ID }}
+      INPUT_FILE: ${{ inputs.file }}
+      INPUT_CONFIRM: ${{ inputs.confirm }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check inputs
+        run: |
+          [[ "$INPUT_CONFIRM" == "IMPORT" ]] || { echo "::error::Type IMPORT to confirm"; exit 1; }
+          [[ "$INPUT_FILE" =~ ^airtable/import/[A-Za-z0-9._-]+\.json$ && -f "$INPUT_FILE" ]] || { echo "::error::No such export file"; exit 1; }
+      - name: Dry run (counts only)
+        run: node scripts/copy-airtable.js --from-file "$INPUT_FILE"
+      - name: Import
+        run: node scripts/copy-airtable.js --from-file "$INPUT_FILE" --write
+      - name: Check Airtable afterwards (records vs the Free limit)
+        run: node src/cli.js airtable-status
+      - name: Remove the imported file from the repo
+        run: |
+          git config user.name "AI Operator Weekly (GitHub Actions)"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -q "$INPUT_FILE"
+          git commit -m "Imported $(basename "$INPUT_FILE") into Airtable; removed the export"
+          git push
