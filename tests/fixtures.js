@@ -27,6 +27,8 @@ const draft = () => ({
     { id: 'tool_of_week', title: 'Tool of the Week', markdown: 'Model Z Pro: $20/month (checked Oct 17). Who it\'s for: solo operators. Who should skip: teams needing SSO. **Verdict: Watch**' },
     { id: 'build_better', title: 'Build Better', markdown: '1. Give examples.\n2. Ask for structured output.\n3. Run small evals.' },
     { id: 'workflow', title: 'Workflow of the Week', markdown: 'Steps 1-4. Human review: approve before anything reaches a customer.' },
+    { id: 'roi', title: 'AI -> ROI', markdown: 'Use case: drafting support replies. Before: 6 min a reply. After: 2 min (estimate). KPI: replies per hour. Assumptions: a person reviews every reply. Human review: approve before sending.' },
+    { id: 'what_not', title: 'What Not to Do', markdown: 'Don\'t let a model send customer email without a human approving it.' },
     { id: 'one_thing', title: 'One Thing to Try', markdown: 'Save one prompt template you reuse. [Guide](https://docs.acme.example/guide)' },
   ],
   word_count: 60,

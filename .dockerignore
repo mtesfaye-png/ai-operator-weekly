@@ -1,0 +1,11 @@
+.git
+.env
+.env.*
+!.env.example
+deploy/windows/.env
+deploy/windows/backups
+node_modules
+data
+out
+data-mock
+out-mock

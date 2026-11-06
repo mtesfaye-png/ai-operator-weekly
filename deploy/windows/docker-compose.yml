@@ -1,0 +1,60 @@
+# AI Operator Weekly, Stage 3: free RSS-only collection on a Windows PC (Docker Desktop).
+#   aow  - this repo's trigger server; can only run `collect` (AOW_SERVER_WORKFLOWS=collect)
+#   n8n  - n8n Community Edition, schedules the daily collection and keeps the execution log
+# Both ports are published on 127.0.0.1 only: nothing is reachable from your network or the internet.
+# Data lives in named Docker volumes, which survive restarts, `docker compose down` and image updates.
+# Never run `docker compose down -v`: -v deletes the volumes (article archive, sync state, n8n workflows).
+#
+# Secrets are read from deploy/windows/.env (created by setup.ps1, gitignored). No Anthropic or beehiiv
+# variables are passed to either container.
+
+name: aow
+
+services:
+  aow:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    image: aow-collector:local
+    restart: unless-stopped
+    environment:
+      AIRTABLE_TOKEN: ${AIRTABLE_TOKEN:?Run setup.ps1 first (AIRTABLE_TOKEN missing in .env)}
+      AIRTABLE_BASE_ID: ${AIRTABLE_BASE_ID:?Run setup.ps1 first (AIRTABLE_BASE_ID missing in .env)}
+      AOW_TRIGGER_TOKEN: ${AOW_TRIGGER_TOKEN:?Run setup.ps1 first (AOW_TRIGGER_TOKEN missing in .env)}
+      AOW_SERVER_WORKFLOWS: collect
+      AOW_TIMEZONE: America/New_York
+      SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-}
+    volumes:
+      - aow_data:/data
+    ports:
+      - "127.0.0.1:8787:8787"
+
+  n8n:
+    image: n8nio/n8n:2.44.7
+    restart: unless-stopped
+    depends_on:
+      - aow
+    environment:
+      GENERIC_TIMEZONE: America/New_York
+      TZ: America/New_York
+      N8N_HOST: localhost
+      N8N_PORT: "5678"
+      N8N_PROTOCOL: http
+      WEBHOOK_URL: http://localhost:5678/
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      N8N_PERSONALIZATION_ENABLED: "false"
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: "true"
+      # Execution log: keep successful and failed runs for 90 days.
+      EXECUTIONS_DATA_SAVE_ON_SUCCESS: all
+      EXECUTIONS_DATA_SAVE_ON_ERROR: all
+      EXECUTIONS_DATA_PRUNE: "true"
+      EXECUTIONS_DATA_MAX_AGE: "2160"
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ../../n8n:/import:ro
+    ports:
+      - "127.0.0.1:5678:5678"
+
+volumes:
+  aow_data:
+  n8n_data:

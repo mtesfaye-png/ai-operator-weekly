@@ -91,8 +91,9 @@ Check these on Airtable's pricing page and **Workspace settings → Summary**.
   mirrored: at most `airtable_max_new_per_run` (15) per run, tier 1 first, newest first, from the last 7 days.
 - **Record budget.** `runtime.json → airtable.record_budget` is 900. Sources rows plus mirrored articles count
   against it, and the app stops adding rows when it's reached. To free space, delete old Articles rows in the
-  Airtable UI (UI deletes don't cost API calls). The local estimate is conservative and won't notice the
-  deletes, so after deleting, raise the budget or reset `airtable_synced_at` locally.
+  Airtable UI (UI deletes don't cost API calls), then run `node src/cli.js airtable-status` (≈10 calls): it
+  counts every table and marks the deleted articles as archived locally, so they free up the budget and are
+  never re-sent. Each run also reports a `usage_warning` at 80% of either budget.
 - **Call budget.** `airtable.monthly_call_budget` is 800. Every Airtable request is counted in
   `data/airtable_usage.json`. At the budget, `collect` reads sources from `config/sources.csv`, makes no Airtable
   calls, and keeps candidates queued locally.
@@ -143,6 +144,9 @@ Check these on Airtable's pricing page and **Workspace settings → Summary**.
    `duplicate_article_ids: 0`. In Airtable, open **Articles** and add views (the UI is free, no API calls):
    - Grid view, filter `editorial_candidate` is checked and `signal_type` is `primary_source`, sorted by `published_at` descending.
    - Group by `source`.
+
+Scheduling: [WINDOWS_LOCAL_SETUP.md](WINDOWS_LOCAL_SETUP.md) runs `collect` every day from n8n on your own PC
+(Docker Desktop, localhost only, $0), using `n8n/rss-collect.json`.
 
 Note: with Airtable configured, the Claude-based `daily`/`weekly` workflows would also use Airtable. They stay off
 until Claude API access exists.

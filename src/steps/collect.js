@@ -161,7 +161,9 @@ async function syncCandidates({ cfg, store, local, sources, log, now, maxSync })
   const pending = all.filter((a) => a.editorial_candidate && !a.airtable_synced_at && a.first_seen_at >= since)
     .sort((a, b) => a.source_tier - b.source_tier || String(b.published_at).localeCompare(String(a.published_at)));
   // Articles in Airtable that this machine never saw still use records, so take the larger count.
-  const recordsUsed = sources.length + Math.max(remoteCount, state?.airtable_article_count || 0, all.filter((a) => a.airtable_synced_at).length);
+  // Rows deleted in the Airtable UI are marked airtable_archived_at by `airtable-status` and no longer count.
+  const inBase = all.filter((a) => a.airtable_synced_at && !a.airtable_archived_at).length;
+  const recordsUsed = sources.length + Math.max(remoteCount, state?.airtable_article_count || 0, inBase);
   const recordRoom = Math.max(0, at.record_budget - recordsUsed);
   const callRoom = Math.max(0, at.monthly_call_budget - usage.usedThisMonth(cfg.dataDir, now) - store.apiCalls());
   const perRun = Math.min(lim.airtable_max_new_per_run, maxSync >= 0 ? maxSync : Infinity); // --max-sync can only lower it
@@ -182,8 +184,19 @@ async function syncCandidates({ cfg, store, local, sources, log, now, maxSync })
     held_by: take.length < pending.length ? Object.keys(caps).find((k) => caps[k] === take.length) : null,
     records_used_estimate: recordsUsed + synced, record_budget: at.record_budget, error,
   };
+  result.usage_warning = usageWarning({ records: result.records_used_estimate, calls: usage.usedThisMonth(cfg.dataDir, now) + store.apiCalls(), at });
   log.info(`Airtable: synced ${synced}/${pending.length} candidates (records ≈${result.records_used_estimate}/${at.record_budget})`);
   return result;
 }
 
-module.exports = { collectRss, titleKey, articleId, classify };
+// Early warning (80% of the app's own budgets, which sit below the Free plan limits) so there is time to
+// archive old rows before syncing stops.
+const WARN_AT = 0.8;
+function usageWarning({ records, calls, at }) {
+  const out = [];
+  if (records >= WARN_AT * at.record_budget) out.push(`Airtable records ≈${records}/${at.record_budget} (Free plan: 1,000 per base). Archive old Articles rows, then run airtable-status.`);
+  if (calls >= WARN_AT * at.monthly_call_budget) out.push(`Airtable API calls this month ${calls}/${at.monthly_call_budget} (Free plan: 1,000 per workspace). Syncing pauses at ${at.monthly_call_budget} until the 1st.`);
+  return out.length ? out.join(' ') : null;
+}
+
+module.exports = { collectRss, titleKey, articleId, classify, usageWarning };
