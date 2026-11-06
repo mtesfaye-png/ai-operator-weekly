@@ -113,3 +113,30 @@ test('EMAIL: a rejected login never puts the password (or its base64) in the err
     assert.ok(!err.message.includes('app-pass') && !err.message.includes(Buffer.from('app-pass').toString('base64')));
   } finally { server.close(); }
 });
+
+test('SCOUT: extra fields from the model are dropped, required fields still enforced', () => {
+  const { stripUnknown } = require('../src/agents/scout');
+  const { loadSchema, validate } = require('../src/validate');
+  const schema = loadSchema('scout_output').properties.stories.items;
+  const story = {
+    story_id: '2026-11-05-acme-model', headline: 'Acme ships a model', event_date: '2026-11-05', category: 'frontier_models',
+    companies: ['Acme'], primary_url: 'https://acme.example/news', supporting_urls: [], factual_summary: 'x', why_it_might_matter: 'y',
+    pricing_change: false, scores: { importance: 4, usefulness: 3, business_value: 3, novelty: 4, audience_fit: 4, extra: 1 },
+    confidence: 0.8, unresolved_questions: [], source: 'acme.example', notes: 'model added this',
+  };
+  assert.equal(validate(schema, story).valid, false);
+  assert.equal(validate(schema, stripUnknown(schema, story)).valid, true);
+  const { headline, ...missing } = story;
+  assert.equal(validate(schema, stripUnknown(schema, missing)).valid, false);
+});
+
+test('SCOUT: near-miss categories are mapped to the allowed ids, unknown ones are left to fail validation', () => {
+  const { normalizeCategory } = require('../src/agents/scout');
+  const allowed = ['frontier_models', 'tools', 'enterprise', 'business', 'regulation', 'open_source', 'workflow', 'infrastructure'];
+  assert.equal(normalizeCategory('Frontier Models', allowed), 'frontier_models');
+  assert.equal(normalizeCategory('open-source', allowed), 'open_source');
+  assert.equal(normalizeCategory('Policy', allowed), 'regulation');
+  assert.equal(normalizeCategory('acquisition', allowed), 'business');
+  assert.equal(normalizeCategory('Chips', allowed), 'infrastructure');
+  assert.equal(normalizeCategory('astrology', allowed), 'astrology');
+});

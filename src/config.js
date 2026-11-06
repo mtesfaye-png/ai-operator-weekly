@@ -42,7 +42,8 @@ function load() {
       slackWebhook: env.SLACK_WEBHOOK_URL || '',
       // Email alerts, e.g. Gmail: SMTP_HOST=smtp.gmail.com, SMTP_PORT=465, SMTP_USER=you@gmail.com,
       // SMTP_PASS=<16-character app password>, ALERT_EMAIL_TO=you@gmail.com (comma-separated for several).
-      email: env.SMTP_HOST && env.ALERT_EMAIL_TO ? {
+      // Off until a password is set when a login is configured, so alerts don't fail on every send.
+      email: env.SMTP_HOST && env.ALERT_EMAIL_TO && !(env.SMTP_USER && !env.SMTP_PASS) ? {
         host: env.SMTP_HOST,
         port: Number(env.SMTP_PORT || 465),
         user: env.SMTP_USER || '',

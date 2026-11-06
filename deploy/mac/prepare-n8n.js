@@ -15,10 +15,24 @@ fs.mkdirSync(out, { recursive: true });
 
 const src = path.join(__dirname, '..', '..', 'n8n');
 const ids = { 'rss-collect.json': 'aowRssCollect001', 'daily-scout.json': 'aowDailyScout001', 'weekly-production.json': 'aowWeeklyProd001', 'analytics.json': 'aowAnalytics0001' };
+const webhooks = { 'rss-collect.json': 'aow-collect', 'daily-scout.json': 'aow-daily', 'weekly-production.json': 'aow-weekly', 'analytics.json': 'aow-analytics' };
 for (const file of Object.keys(ids)) {
   const w = JSON.parse(fs.readFileSync(path.join(src, file), 'utf8'));
   w.id = ids[file];
   w.active = false;
+  // Clock schedules become webhooks: deploy/mac/gate.js starts each job once Mohil has used the Mac for
+  // 30 minutes and isn't in a meeting (a sleeping Mac would miss a fixed time).
+  for (const n of w.nodes) {
+    if (n.type !== 'n8n-nodes-base.scheduleTrigger') continue;
+    const oldName = n.name;
+    n.name = 'Started by the at-the-Mac scheduler';
+    n.type = 'n8n-nodes-base.webhook';
+    n.typeVersion = 2;
+    n.webhookId = webhooks[file];
+    n.parameters = { httpMethod: 'POST', path: webhooks[file], authentication: 'headerAuth', responseMode: 'onReceived', options: {} };
+    n.credentials = { httpHeaderAuth: CRED };
+    if (w.connections[oldName]) { w.connections[n.name] = w.connections[oldName]; delete w.connections[oldName]; }
+  }
   for (const n of w.nodes) {
     if (n.type !== 'n8n-nodes-base.httpRequest') continue;
     const p = n.parameters;

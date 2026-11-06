@@ -44,7 +44,7 @@ function doctor() {
     ['AIRTABLE_TOKEN + AIRTABLE_BASE_ID', !!(cfg.airtable.token && cfg.airtable.baseId), 'optional: without it, data is kept in data/'],
     ['BEEHIIV_API_KEY + BEEHIIV_PUBLICATION_ID', !!(cfg.beehiiv.apiKey && cfg.beehiiv.publicationId), 'optional: without it, issues export for manual paste'],
     ['BEEHIIV_POST_TEMPLATE_ID', !!cfg.beehiiv.templateId, 'optional: house template'],
-    ['SMTP_HOST + ALERT_EMAIL_TO (email alerts)', !!cfg.alerts.email, cfg.alerts.email ? `alerts emailed to ${cfg.alerts.email.to.join(', ')}` : 'optional: alerts go to stderr without email or Slack'],
+    ['SMTP_HOST + ALERT_EMAIL_TO (email alerts)', !!cfg.alerts.email, cfg.alerts.email ? `alerts emailed to ${cfg.alerts.email.to.join(', ')}` : process.env.SMTP_HOST ? 'off until SMTP_PASS is set' : 'optional: alerts go to stderr without email or Slack'],
     ['SMTP_PASS', !!(cfg.alerts.email && cfg.alerts.email.pass), 'needed for Gmail (an app password)'],
     ['SLACK_WEBHOOK_URL', !!cfg.alerts.slackWebhook, 'optional'],
     ['AOW_TRIGGER_TOKEN', !!cfg.server.token, 'required for the n8n trigger server'],
