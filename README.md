@@ -176,8 +176,13 @@ before sending.
 See [`docs/FIRST_LIVE_TEST.md`](docs/FIRST_LIVE_TEST.md): Anthropic only, local storage, a lowered app-side cap
 (`AOW_MAX_USD`), and why a provider-side spend limit is still needed.
 
-## Not yet verified against live services
+## What has been verified live (2026-11-05)
 
-Every path is tested against simulated APIs that follow the official docs, but no live run has happened yet:
-the first `npm run daily` and `npm run weekly` with real keys are that check. The RSS URLs in `sources.csv` are a
-starting list; the daily run reports any that fail.
+Live on Mohil's Mac: RSS collect into Airtable (15/15 feeds), the daily scout with real Claude (18 stories, 0
+rejected), story selection, deep research with official-pricing enforcement, n8n orchestration and its failure
+alerts, the at-the-Mac scheduler and meeting check, backups. The live runs found and fixed three real bugs
+(Scout categories, research labels, writer JSON parsing).
+
+Not yet live: a weekly run all the way to the gate (spending was paused after the parsing fix), beehiiv draft
+creation (beehiiv not connected yet), email alerts (needs a Gmail app password). All three pass in the simulated
+end-to-end run (`npm run demo`). Status per brief item: `docs/AI_Operator_Weekly_Operating_Manual.pdf`, section 7.
