@@ -4,7 +4,7 @@ Everything here runs in the browser. There's nothing to install and no laptop ac
 
 | Piece | Where it runs | Status (verified Nov 3, 2026, 22:47 UTC) |
 |---|---|---|
-| RSS collection → Airtable | GitHub Actions (free minutes) | **Fully live.** Daily at 7:17am New York time, plus **Run workflow**. Six successful runs today (links in `FINAL_CHECKLIST.md`) |
+| RSS collection → Airtable | GitHub Actions (free minutes) | **Fully live.** Scheduled daily for 7:17am New York time (GitHub has started these scheduled runs late: between 12:44pm and 5:21pm New York time on Nov 4–12), plus **Run workflow**. Six successful runs today (links in `FINAL_CHECKLIST.md`) |
 | Airtable database | The existing base `appYiy5hPq7BNDosa` | **Fully live.** 110 real articles + 29 sources, with 0 duplicate IDs |
 | n8n | **n8n Cloud** (free trial) | **Fully live.** The Cloud execution started [run 41733527751 "RSS collect · n8n-cloud"](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41733527751), started by `mtesfaye-png`, all steps green. Manual only: no n8n schedule |
 | Newsletter | `demo/2026-11-03/` and the demo page | **Draft for Mohil.** Written in a Claude Code session from verified sources, not by the paid pipeline |
@@ -40,7 +40,7 @@ Everything here runs in the browser. There's nothing to install and no laptop ac
    2. Add the scope `data.records:read`, and give it access to the base **AI Operator Weekly**.
    3. Create it and copy it.
 7. In n8n, double-click **Read newest articles from Airtable** → **Credential** → **Create new credential**. The type is already set to Airtable's personal access token. Paste the token and save.
-8. **Don't add a schedule in n8n.** GitHub Actions already runs the collection every day at 7:17am New York time, and a second schedule would run it twice.
+8. **Don't add a schedule in n8n.** GitHub Actions already runs the collection every day, and a second schedule would run it twice.
 
 ### C. beehiiv draft through the API (optional, only on the Pro or Enterprise plan)
 1. In beehiiv, go to **Settings → API** → create an API key, and copy your **Publication ID** (`pub_…`).
@@ -84,9 +84,14 @@ Everything here runs in the browser. There's nothing to install and no laptop ac
    - Only Mohil clicks **Publish** in beehiiv.
 
 ## Real screenshots in this folder
-- `screenshots/newsletter-top.png` and `screenshots/newsletter-tool-of-week.png`: the rendered newsletter.
-- `screenshots/n8n-cloud-demo-workflow.png`: the n8n workflow canvas (n8n 2.44.7 running in Claude's session, not n8n Cloud).
-- `screenshots/n8n-cloud-demo-execution-success.png`: the successful execution at 16:39 UTC (run 41676377849, 35.7 s).
-- `screenshots/n8n-cloud-demo-execution.png`: a real execution. It started GitHub run 41673616802, which failed because the Airtable secrets weren't set yet, and n8n reported that failure correctly.
+**From the live services** (taken by you, Nov 12, 2026):
+- `screenshots/github-run-n8n-cloud-summary.png`: GitHub run #7, **RSS collect · n8n-cloud**, started by `mtesfaye-png` from n8n Cloud. It shows the summary table: 12 of 14 feeds read, **Added to Airtable this run: 6**, **Paid API calls: 0**.
+- `screenshots/n8n-cloud-execution-success.png`: an n8n Cloud execution (Nov 12, 18:46 New York time) that **Succeeded in 38.4 s**, every node green. It started GitHub run [43331716105](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/43331716105).
+- `screenshots/airtable-sources.png`: the Airtable base **AI Operator Weekly**, Sources table, 32 records.
+- `screenshots/beehiiv-draft-editor.png`: the Nov 3 issue pasted into a beehiiv post on the Free plan, with a **[DRAFT TAKE - Mohil to confirm]** line visible.
 
-There are no screenshots of GitHub, Airtable or beehiiv. Those need your logged-in browser, so take them during the demo.
+**Rendered and tested in Claude's session:**
+- `screenshots/newsletter-top.png` and `screenshots/newsletter-tool-of-week.png`: the rendered newsletter.
+- `screenshots/n8n-cloud-demo-workflow.png`: the n8n workflow canvas (n8n 2.44.7 in Claude's session).
+- `screenshots/n8n-cloud-demo-execution-success.png`: the self-hosted test at 16:39 UTC on Nov 3 (run 41676377849).
+- `screenshots/n8n-cloud-demo-execution.png`: a failed execution (run 41673616802, before the Airtable secrets existed), which shows how n8n reports an error.

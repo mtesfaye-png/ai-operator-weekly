@@ -6,7 +6,7 @@ The workflow `n8n/cloud-demo.json` does four things:
 3. Reads the 10 newest articles from Airtable.
 4. Shows them as its result. A failed or refused run turns the execution red, with the reason.
 
-It has **no schedule**: GitHub Actions stays the only daily scheduler (7:17am New York time).
+It has **no schedule**: GitHub Actions stays the only daily scheduler (set for 7:17am New York time; GitHub usually starts it in the early afternoon).
 
 **Cost:** $0.
 - The n8n Cloud trial is 14 days and needs no credit card. It allows 1,000 executions, and each execution can run for up to 180 seconds; this workflow takes about 40.

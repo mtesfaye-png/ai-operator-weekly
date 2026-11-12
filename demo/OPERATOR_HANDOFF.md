@@ -1,7 +1,7 @@
 # AI Operator Weekly: operator handoff (for Mohil)
 
 ## What runs by itself
-- **Every morning at 7:17am New York time**, GitHub Actions reads 14 public AI news feeds and drops duplicates.
+- **Every day**, GitHub Actions reads 14 public AI news feeds and drops duplicates. It's scheduled for 7:17am New York time, but GitHub has started it between 12:44pm and 5:21pm (Nov 4–12). That's normal for GitHub's free scheduler.
 - It adds up to **15 new editorial candidates per run** to Airtable, in the **AI Operator Weekly → Articles** table.
 - It costs $0, uses no AI, and never publishes anything.
 - If a run fails, GitHub emails the repository's watchers.
@@ -9,7 +9,7 @@
 ## Your 2-minute morning check
 1. Open Airtable → **AI Operator Weekly** → **Articles**, sorted by `first_seen_at`, newest first.
 2. Skim the new rows. Everything is marked `verification_status: unverified`: it's the publisher's own text, a lead to check, not a fact.
-3. Optional: open https://github.com/mtesfaye-png/ai-operator-weekly/actions. Today's **RSS collect · daily schedule** run should show a green tick.
+3. Optional: open https://github.com/mtesfaye-png/ai-operator-weekly/actions. Today's **RSS collect · daily schedule** run should show a green tick. Check after about 6pm New York time, since GitHub starts it late.
 
 ## Run a collection on demand
 Use either route:
@@ -44,7 +44,7 @@ Running it again is safe: you get only genuinely new articles and never duplicat
 ## Limits and costs
 - **Airtable Free:** 1,000 records per base and 1,000 API calls a month.
   - The app stops adding rows at 900 records and stops calling Airtable at 800 calls.
-  - Today: 110 articles + 29 sources = 139 records. Each run uses about 4 calls.
+  - On Nov 12: 367 records (268 articles, 32 sources and Mohil's imported stories, scores and research). Articles grow by about 17 a day, so archive old Articles rows when the total passes about 700 (around early December). Each run uses about 4 calls.
   - To make room, download a CSV of old Articles rows from a filtered view, then delete those rows in Airtable. Deleting in the Airtable UI costs no API calls.
 - **GitHub Actions:** about 1 minute per run, out of 2,000 free minutes a month for private repos.
 - **n8n Cloud trial:** 14 days and 1,000 executions, then it expires. Don't upgrade without approval; the workflow file stays in GitHub.

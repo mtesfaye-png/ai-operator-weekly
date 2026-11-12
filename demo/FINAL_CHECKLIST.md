@@ -45,6 +45,17 @@ Everything below was verified on November 3, 2026, at 22:47 UTC, from GitHub's A
 - The workflow receives only the `AIRTABLE_TOKEN` and `AIRTABLE_BASE_ID` secrets, which a test enforces.
 - `collect` refuses `api.anthropic.com` and `api.beehiiv.com` at the network level.
 
+## Since the demo (verified Nov 12, 2026, 23:55 UTC)
+| Run | What | Result |
+|---|---|---|
+| [41900097937](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/41900097937) … [43294923426](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/43294923426) | **RSS collect · daily schedule**, Nov 4–12 (9 runs) | All successful. GitHub started them late, between 12:44pm and 5:21pm New York time |
+| [42400624253](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/42400624253) | **Weekly free issue · Saturday schedule**, Nov 7 | Successful |
+| [43331716105](https://github.com/mtesfaye-png/ai-operator-weekly/actions/runs/43331716105) | **RSS collect · n8n-cloud**, Nov 12 (started by `mtesfaye-png` from n8n Cloud) | Successful, all 14 steps |
+
+**Airtable on Nov 12:** 268 articles, 268 unique article IDs, 0 duplicates; 367 of the 1,000 Free records in total (32 sources, plus the stories, scores and research imported from Mohil's base).
+
+**Screenshots from the live services** are in `screenshots/`: the GitHub n8n-cloud run summary, the n8n Cloud execution, the Airtable Sources table, and the issue in beehiiv. They're listed in `DEMO_GUIDE.md`.
+
 ## Original assignment: what is operational
 | # | Requirement | Status | What's still needed |
 |---|---|---|---|
